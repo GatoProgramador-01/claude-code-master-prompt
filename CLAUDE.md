@@ -32,20 +32,6 @@ Every backend and frontend change **must** follow Red → Green → Refactor. Th
 
 ---
 
-## WINDOWS ENVIRONMENT RULES
-This machine runs Windows 10. Bash tool calls run inside Git Bash, which can lose working-directory context between invocations.
-
-- **Starting background processes** (uvicorn, dev servers): use PowerShell `Start-Process`, NEVER bash `&`. Bash background processes are unreliable on Windows.
-  ```powershell
-  Start-Process -FilePath ".\.venv\Scripts\python.exe" `
-    -ArgumentList "-m", "uvicorn", "app.main:app", "--port", "8000" -NoNewWindow
-  ```
-- **Killing processes by port**: use PowerShell `Get-Process -Name python,python3 | Stop-Process -Force` — taskkill from bash is unreliable.
-- **Bash commands that depend on working directory**: always include an explicit `cd` or use absolute paths. Never assume the shell is in the right directory from a previous call.
-- **Checking if a port is free**: `netstat -ano | Select-String "LISTENING" | Select-String ":PORT"` in PowerShell.
-
----
-
 ## CORE RULES
 - Private repos: `gh repo create --private`
 - Format before commit: Black / Prettier / ESLint
