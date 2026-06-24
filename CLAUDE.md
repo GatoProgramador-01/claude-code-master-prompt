@@ -361,6 +361,34 @@ aws --version   # aws-cli/2.x.x Python/3.x.x Windows/10
 
 Do NOT use the MSI installer directly — it fails with exit code 1603 (insufficient privileges) without admin shell. winget resolves this automatically.
 
+### Step 1b — Create a non-root IAM user immediately (if given root credentials)
+Root access keys are a critical security risk. As soon as the CLI works, create a dedicated IAM user and switch to it:
+```bash
+AWS="C:/Program Files/Amazon/AWSCLIV2/aws.exe"   # always use full path on Windows
+
+# Create user
+"$AWS" iam create-user --user-name dev-admin
+
+# Grant admin access
+"$AWS" iam attach-user-policy \
+  --user-name dev-admin \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+# Create access keys for the new user
+"$AWS" iam create-access-key --user-name dev-admin
+# → copy the new AccessKeyId and SecretAccessKey from the output
+
+# Reconfigure CLI with the new non-root credentials
+"$AWS" configure set aws_access_key_id     <new-key-id>
+"$AWS" configure set aws_secret_access_key <new-secret>
+
+# Verify — Arn must now show user/dev-admin, not root
+"$AWS" sts get-caller-identity
+```
+
+Then go to the AWS Console and **delete the root access keys** at:
+https://console.aws.amazon.com/iam/home#/security_credentials
+
 ### Step 2 — Configure SSO profile (run once per account)
 ```bash
 aws configure sso
@@ -483,6 +511,36 @@ terraform {
 }
 EOF
 ```
+
+### Windows AWS CLI — non-negotiable rules (learned from real failures)
+
+**Always use the full binary path** — `aws` is not on PATH in a fresh shell until the terminal is restarted after install:
+```bash
+AWS="C:/Program Files/Amazon/AWSCLIV2/aws.exe"
+"$AWS" sts get-caller-identity
+```
+
+**Never pass JSON inline from PowerShell** — PowerShell mangles the quotes. Two safe patterns:
+
+```bash
+# Pattern A: single-quoted string in Git Bash (recommended)
+"$AWS" iam create-role \
+  --role-name my-role \
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[...]}'
+
+# Pattern B: write to file, pass with fileb:// for binary (zip) or as string for JSON
+[System.IO.File]::WriteAllText("C:\tmp\policy.json", '{"Version":...}')  # no BOM
+"$AWS" iam create-role --assume-role-policy-document (Get-Content "C:\tmp\policy.json" -Raw)
+```
+
+**`file://` paths don't work on Windows** for `--assume-role-policy-document`. Use inline JSON (Bash) or `Get-Content -Raw` (PowerShell) instead.
+
+**`fileb://` paths for zip files** require forward slashes:
+```bash
+"$AWS" lambda create-function --zip-file "fileb://C:/Users/you/function.zip" ...
+```
+
+**IAM propagation delay** — always `Start-Sleep 12` (PowerShell) or `sleep 12` (bash) between `create-role` and `lambda create-function`. Without this, Lambda returns `InvalidParameterValueException: cannot be assumed`.
 
 ### New-job day-one checklist
 - [ ] AWS CLI v2 installed — `aws --version`
