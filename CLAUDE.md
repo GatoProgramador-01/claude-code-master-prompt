@@ -60,6 +60,21 @@ This machine runs Windows 10. Bash tool calls run inside Git Bash, which can los
 
 ---
 
+## WINDOWS ENVIRONMENT RULES
+This machine runs Windows 10. Bash tool calls run inside Git Bash, which can lose working-directory context between invocations.
+
+- **Starting background processes** (uvicorn, dev servers): use PowerShell `Start-Process`, NEVER bash `&`. Bash background processes are unreliable on Windows.
+  ```powershell
+  Start-Process -FilePath ".\.venv\Scripts\python.exe" `
+    -ArgumentList "-m", "uvicorn", "app.main:app", "--port", "8000" -NoNewWindow
+  ```
+- **Killing processes by port**: use PowerShell `Get-Process -Name python,python3 | Stop-Process -Force` — taskkill from bash is unreliable.
+- **Bash commands that depend on working directory**: always include an explicit `cd` or use absolute paths. Never assume the shell is in the right directory from a previous call.
+- **Checking if a port is free**: `netstat -ano | Select-String "LISTENING" | Select-String ":PORT"` in PowerShell.
+- **Installing system tools**: prefer `winget` over MSI — winget handles elevation automatically and doesn't require admin prompt.
+
+---
+
 ## HCL / TERRAFORM — SYNTAX RULES (non-negotiable)
 
 ### Block structure
@@ -342,6 +357,158 @@ Workflow:  Step Functions → Lambda chain             (durable, stateful)
 ### API Gateway
 - HTTP API over REST API (unless WAF/caching/usage plans required)
 - Always attach Cognito or Lambda authorizer — no open endpoints
+
+---
+
+## AWS ACCOUNT ONBOARDING — NEW JOB SETUP
+
+Automates the full developer onboarding flow when starting at a new company with an AWS account. Run steps in order on day one.
+
+### Step 1 — Install AWS CLI v2 (Windows / PowerShell)
+```powershell
+# winget handles elevation automatically — no UAC dialog needed
+winget install --id Amazon.AWSCLI --silent --accept-package-agreements --accept-source-agreements
+
+# Open a NEW terminal, then verify
+aws --version   # aws-cli/2.x.x Python/3.x.x Windows/10
+```
+
+Do NOT use the MSI installer directly — it fails with exit code 1603 (insufficient privileges) without admin shell. winget resolves this automatically.
+
+### Step 2 — Configure SSO profile (run once per account)
+```bash
+aws configure sso
+# Interactive prompts:
+#   SSO session name:        my-company          ← memorable alias
+#   SSO start URL:           https://my-company.awsapps.com/start
+#   SSO region:              us-east-1           ← the region where IAM Identity Center lives
+#   SSO registration scopes: sso:account:access  ← press Enter for default
+#
+# AWS lists the accounts and roles you have access to — select the target
+#   Account:  123456789012 (my-company-dev)
+#   Role:     DevAccess
+#
+# Default output format: json
+# Profile name: my-company-dev                   ← use {company}-{env} convention
+```
+
+### Step 3 — Login (URL appears in terminal — open it in browser)
+```bash
+aws sso login --profile my-company-dev
+```
+
+Output:
+```
+Attempting to automatically open the SSO authorization page in your default browser.
+If the browser does not open or you wish to use a different device to authorize this
+request, open the following URL:
+
+https://device.sso.us-east-1.amazonaws.com/?user_code=XXXX-XXXX   ← CLICK THIS
+
+Then enter the code: XXXX-XXXX
+```
+
+Rules:
+- If the browser doesn't open automatically, copy the URL and open it manually
+- Click **Allow** in the browser → return to terminal → session is now active
+- The device code expires in ~10 minutes — act quickly
+- Sessions last 8h by default; run `aws sso login --profile <name>` again when expired
+
+### Step 4 — Verify login and set default profile
+```bash
+# Confirm identity
+aws sts get-caller-identity --profile my-company-dev
+# Returns: { "UserId": "...", "Account": "123456789012", "Arn": "arn:aws:sts::..." }
+
+# Set as default for current terminal session
+export AWS_PROFILE=my-company-dev            # bash / Git Bash
+$env:AWS_PROFILE = "my-company-dev"          # PowerShell
+
+# Persist across sessions — add to shell profile
+echo 'export AWS_PROFILE=my-company-dev' >> ~/.bashrc   # bash
+# PowerShell: Add to $PROFILE: $env:AWS_PROFILE = "my-company-dev"
+```
+
+### Step 5 — Check effective permissions (day-one sanity checks)
+```bash
+# Who am I?
+aws sts get-caller-identity
+
+# What can I reach?
+aws s3 ls                          # list buckets
+aws lambda list-functions          # list Lambdas (paginated)
+aws ec2 describe-regions           # basic EC2 access
+aws logs describe-log-groups       # CloudWatch Logs
+
+# What permissions does this role have?
+aws iam list-attached-role-policies \
+  --role-name $(aws sts get-caller-identity --query 'Arn' --output text | cut -d'/' -f2) 2>/dev/null || \
+aws iam get-user 2>/dev/null
+```
+
+### Step 6 — Terraform backend bootstrap (run once per fresh account)
+Run this before the first `terraform init`. Creates S3 state bucket + DynamoDB lock table.
+
+```bash
+# Set once; all commands below use these vars
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ENV=dev          # or prod
+export PROJECT=myproject
+export REGION=us-east-1
+
+# --- S3 state bucket ---
+aws s3api create-bucket \
+  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
+  --region "$REGION" \
+  --create-bucket-configuration LocationConstraint="$REGION"
+
+aws s3api put-bucket-versioning \
+  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-encryption \
+  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
+  --server-side-encryption-configuration \
+  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+
+aws s3api put-public-access-block \
+  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
+  --public-access-block-configuration \
+  "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+
+# --- DynamoDB lock table ---
+aws dynamodb create-table \
+  --table-name "${PROJECT}-${ENV}-terraform-lock" \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --region "$REGION"
+
+echo "Bootstrap done. Add this to infra/envs/${ENV}/backend.tf:"
+cat <<EOF
+terraform {
+  backend "s3" {
+    bucket         = "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}"
+    key            = "${ENV}/terraform.tfstate"
+    region         = "${REGION}"
+    dynamodb_table = "${PROJECT}-${ENV}-terraform-lock"
+    encrypt        = true
+  }
+}
+EOF
+```
+
+### New-job day-one checklist
+- [ ] AWS CLI v2 installed — `aws --version`
+- [ ] SSO profile configured — `aws configure sso`
+- [ ] Login completed — `aws sso login --profile <name>`
+- [ ] Identity verified — `aws sts get-caller-identity`
+- [ ] `AWS_PROFILE` persisted in shell profile
+- [ ] Permissions checked — `aws s3 ls`, `aws lambda list-functions`
+- [ ] Terraform state bootstrap done (or confirmed bucket/table already exists)
+- [ ] `backend.tf` written with correct bucket/table/region
+- [ ] AGENTS.md + CLAUDE.md created in the repo root
+- [ ] `claude/CONTEXT.md` created with current state
 
 ---
 
