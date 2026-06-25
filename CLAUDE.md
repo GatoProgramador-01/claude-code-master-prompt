@@ -322,6 +322,184 @@ include = ["app*"]   # prevents "Multiple top-level packages discovered"
 
 ---
 
+## AWS SSO / IAM IDENTITY CENTER — DEVELOPER ONBOARDING GUIDE
+
+This section covers the **developer-side** SSO flow — what you do when IT hands you access to a company AWS environment. Admin setup (Identity Center instances, permission sets, user assignments) is out of scope here.
+
+### What IT gives you on day 1
+| Item | Example |
+|------|---------|
+| SSO start URL | `https://acme-corp.awsapps.com/start` |
+| SSO region | `us-east-1` (where Identity Center lives) |
+| Account ID(s) | `123456789012` |
+| Role name(s) | `DeveloperAccess`, `ReadOnlyAccess` |
+| Session duration | 8h (set by admin on the permission set) |
+
+### ~/.aws/config — exact format
+
+One `[sso-session]` block is shared across all profiles. One `[profile]` block per account/role combination.
+
+```ini
+# ─── SSO SESSION (shared, one per Identity Center instance) ──────────────────
+[sso-session acme-corp]
+sso_start_url            = https://acme-corp.awsapps.com/start
+sso_region               = us-east-1
+sso_registration_scopes  = sso:account:access
+
+# ─── DEVELOPER PROFILE — dev account ─────────────────────────────────────────
+[profile acme-dev]
+sso_session     = acme-corp
+sso_account_id  = 123456789012
+sso_role_name   = DeveloperAccess
+region          = us-east-1
+output          = json
+
+# ─── READ-ONLY PROFILE — prod account ────────────────────────────────────────
+[profile acme-prod-ro]
+sso_session     = acme-corp
+sso_account_id  = 999999999999
+sso_role_name   = ReadOnlyAccess
+region          = us-east-1
+output          = json
+
+# ─── INFRA PROFILE — elevated, IaC applies only ──────────────────────────────
+[profile acme-infra]
+sso_session     = acme-corp
+sso_account_id  = 123456789012
+sso_role_name   = InfrastructureAdmin
+region          = us-east-1
+output          = json
+```
+
+**Alternative: `aws configure sso` interactive wizard** (generates the same config)
+```bash
+# Run in cmd.exe or PowerShell (not Git Bash — terminal detection bug on Windows)
+aws configure sso --profile acme-dev
+# Prompts: SSO start URL → SSO region → browser opens → pick account → pick role → output format
+```
+
+### Day 1 setup (run once)
+
+```bash
+# 1. Write ~/.aws/config manually (preferred) OR use the wizard above
+# 2. Login — opens browser to your IDP (Okta / Azure AD / Google Workspace)
+aws sso login --profile acme-dev
+#   Attempting to automatically open the SSO authorization page in your default browser.
+#   If the browser does not open or you wish to use a different device to authorize this request,
+#   open the following URL:
+#   https://device.sso.us-east-1.amazonaws.com/
+#   Enter the code: XXXX-XXXX
+```
+
+One `aws sso login` covers **all profiles sharing the same `[sso-session]`** — you don't need to login per profile.
+
+### Daily use
+
+```bash
+# Inline flag — explicit per command
+aws sts get-caller-identity --profile acme-dev
+aws s3 ls --profile acme-dev
+
+# Environment variable — sets default for the whole shell session
+export AWS_PROFILE=acme-dev
+aws sts get-caller-identity   # no flag needed
+
+# PowerShell equivalent
+$env:AWS_PROFILE = "acme-dev"
+aws sts get-caller-identity
+```
+
+### How credentials flow (under the hood)
+
+```
+Browser login (IDP) → OIDC bearer token  → ~/.aws/sso/cache/<sha1-of-start-url>.json  (8h)
+                                                   ↓  (auto-exchanged per role)
+                                        STS temp creds → ~/.aws/cli/cache/<hash>.json  (1h, auto-refreshed)
+```
+
+Files written to disk:
+```
+~/.aws/sso/cache/
+  ├── <sha1-of-start-url>.json          ← OIDC bearer token (lives for session-duration, default 8h)
+  └── botocore-client-id-<region>.json  ← OIDC client registration
+
+~/.aws/cli/cache/
+  └── <hash-of-profile>.json            ← STS AssumeRoleWithWebIdentity creds (1h, auto-refreshed)
+```
+
+### Token expiry — re-login
+
+```bash
+# You'll see one of these errors when the token is expired:
+#   Error loading SSO Token: Token for acme-corp does not exist
+#   Token has expired and refresh failed
+
+# Fix: just login again (browser → IDP → done in <30s)
+aws sso login --profile acme-dev
+```
+
+### Logout (invalidate all cached tokens)
+
+```bash
+aws sso logout
+# Deletes all ~/.aws/sso/cache/*.json — next aws call requires re-login
+```
+
+### Discover what accounts/roles you have access to
+
+```bash
+# 1. Get the access token from cache
+TOKEN=$(cat ~/.aws/sso/cache/*.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['accessToken'])" 2>/dev/null)
+
+# 2. List all accounts assigned to you
+aws sso list-accounts \
+  --access-token "$TOKEN" \
+  --region us-east-1
+
+# 3. List roles for a specific account
+aws sso list-account-roles \
+  --account-id 123456789012 \
+  --access-token "$TOKEN" \
+  --region us-east-1
+```
+
+### Terraform integration
+
+Terraform picks up SSO credentials automatically when `AWS_PROFILE` is set or `profile` is configured in the provider block. **No changes to Terraform code needed.**
+
+```bash
+export AWS_PROFILE=acme-infra
+terraform plan    # uses SSO creds transparently
+terraform apply
+```
+
+Or pin in `provider.tf` (dev only — never hardcode in prod modules):
+```hcl
+provider "aws" {
+  region  = "us-east-1"
+  profile = "acme-infra"   # reads from ~/.aws/config SSO profile
+}
+```
+
+### CI/CD — SSO does NOT work in pipelines
+
+SSO requires an interactive browser session. For CI:
+- GitHub Actions → OIDC trust with IAM role (see Terraform OIDC rules above)
+- Never put SSO credentials in CI — they expire and require human interaction
+
+### Common errors and fixes
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Token for X does not exist` | Never logged in or tokens deleted | `aws sso login --profile <name>` |
+| `Token has expired` | 8h session elapsed | `aws sso login --profile <name>` |
+| `InvalidGrantException` | IDP session expired server-side | `aws sso logout` then `aws sso login` |
+| `No roles available` | Admin hasn't assigned your user yet | Contact IT/admin |
+| `Found xterm-256color` (Windows) | `aws configure sso` in Git Bash | Run in PowerShell or cmd.exe instead |
+| `AccessDenied` on a specific service | Permission set doesn't include that action | Request elevated role from admin |
+
+---
+
 ## AWS SERVERLESS
 
 ### Lambda rules
