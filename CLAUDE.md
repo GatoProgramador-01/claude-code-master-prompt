@@ -5,6 +5,53 @@ Act as a senior tech lead and DevOps engineer. Decisions must consider cost, sec
 
 ---
 
+## PARALLEL AGENTS — DEFAULT OPERATING MODE (non-negotiable)
+
+Always decompose work into parallel Agent tool calls whenever tasks are independent. Maximum 5 agents running simultaneously. This is the default — not an optimization to apply occasionally.
+
+### When to parallelize (always, if tasks are independent)
+- Research + implementation can always split: one agent reads/searches while another writes
+- Multiple file rewrites across different modules → one agent per module
+- README + infra + CLAUDE.md updates → all three simultaneously
+- Security audit + test run + lint → all simultaneously
+- Any task with subtasks that don't share output → parallelize them
+
+### When NOT to parallelize
+- Task B needs the output of Task A as input → sequential only
+- Two agents writing to the same file → sequential (last write wins, work lost)
+- Fewer than 2 meaningful independent units of work
+
+### Agent selection — use the right specialist
+```
+Explore          → locate files, grep for symbols, "where is X defined" — fast, read-only
+Plan             → architecture decisions, implementation strategy before coding
+general-purpose  → multi-step research spanning many files or external sources
+claude-code-guide → questions about Claude Code features, API, hooks, MCP
+lain-specialist  → NEVER use (see feedback memory)
+```
+
+### Parallel agent pattern (always write all tool calls in one message block)
+```
+Task: "update README + add Terraform infra + update master prompt"
+
+Send ONE message with THREE Agent tool calls:
+  Agent 1 → write README.md
+  Agent 2 → write infra/ Terraform files
+  Agent 3 → update CLAUDE.md section
+
+Then: copy results, commit all three together.
+```
+
+### Signs you under-parallelized
+- You wrote "first I'll do X, then Y, then Z" for independent tasks
+- You ran agents sequentially when their inputs didn't depend on each other
+- You spent >30s waiting for one agent before starting the next
+
+### Batch tool calls too (not just agents)
+Independent Bash, Read, Grep, and Glob calls in the same turn must also be sent simultaneously — not in serial. Apply the same parallelism rule to all tool calls, not just Agent.
+
+---
+
 ## TDD — TEST-DRIVEN DEVELOPMENT (non-negotiable)
 
 Every backend and frontend change **must** follow Red → Green → Refactor. This is not optional.
@@ -32,20 +79,6 @@ Every backend and frontend change **must** follow Red → Green → Refactor. Th
 
 ---
 
-## CORE RULES
-- Private repos: `gh repo create --private`
-- Format before commit: Black / Prettier / ESLint
-- Security `.gitignore` on every repo
-- NestJS: CLI only, never hand-write boilerplate
-- Playwright: `browser_run_code` only, never `browser_snapshot`
-- IaC: Terraform only, never click-ops in AWS console for persistent resources
-- Secrets: AWS Secrets Manager or SSM Parameter Store — never in code, `.env` files, or Terraform `.tfvars` committed to git
-- Naming: `{project}-{env}-{service}-{resource}` (e.g. `autofact-prod-orchestrator-lambda`)
-- Tagging: every AWS resource gets `Environment`, `Project`, `ManagedBy=terraform`
-- Branch name: run `git branch --show-current` before writing any workflow `branches:` trigger — never assume `main`
-
----
-
 ## WINDOWS ENVIRONMENT RULES
 This machine runs Windows 10. Bash tool calls run inside Git Bash, which can lose working-directory context between invocations.
 
@@ -57,7 +90,20 @@ This machine runs Windows 10. Bash tool calls run inside Git Bash, which can los
 - **Killing processes by port**: use PowerShell `Get-Process -Name python,python3 | Stop-Process -Force` — taskkill from bash is unreliable.
 - **Bash commands that depend on working directory**: always include an explicit `cd` or use absolute paths. Never assume the shell is in the right directory from a previous call.
 - **Checking if a port is free**: `netstat -ano | Select-String "LISTENING" | Select-String ":PORT"` in PowerShell.
-- **Installing system tools**: prefer `winget` over MSI — winget handles elevation automatically and doesn't require admin prompt.
+
+---
+
+## CORE RULES
+- Private repos: `gh repo create --private`
+- Format before commit: Black / Prettier / ESLint
+- Security `.gitignore` on every repo
+- NestJS: CLI only, never hand-write boilerplate
+- Playwright: `browser_run_code` only, never `browser_snapshot`
+- IaC: Terraform only, never click-ops in AWS console for persistent resources
+- Secrets: AWS Secrets Manager or SSM Parameter Store — never in code, `.env` files, or Terraform `.tfvars` committed to git
+- Naming: `{project}-{env}-{service}-{resource}` (e.g. `autofact-prod-orchestrator-lambda`)
+- Tagging: every AWS resource gets `Environment`, `Project`, `ManagedBy=terraform`
+- Branch name: run `git branch --show-current` before writing any workflow `branches:` trigger — never assume `main`
 
 ---
 
@@ -521,216 +567,6 @@ Workflow:  Step Functions → Lambda chain             (durable, stateful)
 ### API Gateway
 - HTTP API over REST API (unless WAF/caching/usage plans required)
 - Always attach Cognito or Lambda authorizer — no open endpoints
-
----
-
-## AWS ACCOUNT ONBOARDING — NEW JOB SETUP
-
-Automates the full developer onboarding flow when starting at a new company with an AWS account. Run steps in order on day one.
-
-### Step 1 — Install AWS CLI v2 (Windows / PowerShell)
-```powershell
-# winget handles elevation automatically — no UAC dialog needed
-winget install --id Amazon.AWSCLI --silent --accept-package-agreements --accept-source-agreements
-
-# Open a NEW terminal, then verify
-aws --version   # aws-cli/2.x.x Python/3.x.x Windows/10
-```
-
-Do NOT use the MSI installer directly — it fails with exit code 1603 (insufficient privileges) without admin shell. winget resolves this automatically.
-
-### Step 1b — Create a non-root IAM user immediately (if given root credentials)
-Root access keys are a critical security risk. As soon as the CLI works, create a dedicated IAM user and switch to it:
-```bash
-AWS="C:/Program Files/Amazon/AWSCLIV2/aws.exe"   # always use full path on Windows
-
-# Create user
-"$AWS" iam create-user --user-name dev-admin
-
-# Grant admin access
-"$AWS" iam attach-user-policy \
-  --user-name dev-admin \
-  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
-
-# Create access keys for the new user
-"$AWS" iam create-access-key --user-name dev-admin
-# → copy the new AccessKeyId and SecretAccessKey from the output
-
-# Reconfigure CLI with the new non-root credentials
-"$AWS" configure set aws_access_key_id     <new-key-id>
-"$AWS" configure set aws_secret_access_key <new-secret>
-
-# Verify — Arn must now show user/dev-admin, not root
-"$AWS" sts get-caller-identity
-```
-
-Then go to the AWS Console and **delete the root access keys** at:
-https://console.aws.amazon.com/iam/home#/security_credentials
-
-### Step 2 — Configure SSO profile (run once per account)
-```bash
-aws configure sso
-# Interactive prompts:
-#   SSO session name:        my-company          ← memorable alias
-#   SSO start URL:           https://my-company.awsapps.com/start
-#   SSO region:              us-east-1           ← the region where IAM Identity Center lives
-#   SSO registration scopes: sso:account:access  ← press Enter for default
-#
-# AWS lists the accounts and roles you have access to — select the target
-#   Account:  123456789012 (my-company-dev)
-#   Role:     DevAccess
-#
-# Default output format: json
-# Profile name: my-company-dev                   ← use {company}-{env} convention
-```
-
-### Step 3 — Login (URL appears in terminal — open it in browser)
-```bash
-aws sso login --profile my-company-dev
-```
-
-Output:
-```
-Attempting to automatically open the SSO authorization page in your default browser.
-If the browser does not open or you wish to use a different device to authorize this
-request, open the following URL:
-
-https://device.sso.us-east-1.amazonaws.com/?user_code=XXXX-XXXX   ← CLICK THIS
-
-Then enter the code: XXXX-XXXX
-```
-
-Rules:
-- If the browser doesn't open automatically, copy the URL and open it manually
-- Click **Allow** in the browser → return to terminal → session is now active
-- The device code expires in ~10 minutes — act quickly
-- Sessions last 8h by default; run `aws sso login --profile <name>` again when expired
-
-### Step 4 — Verify login and set default profile
-```bash
-# Confirm identity
-aws sts get-caller-identity --profile my-company-dev
-# Returns: { "UserId": "...", "Account": "123456789012", "Arn": "arn:aws:sts::..." }
-
-# Set as default for current terminal session
-export AWS_PROFILE=my-company-dev            # bash / Git Bash
-$env:AWS_PROFILE = "my-company-dev"          # PowerShell
-
-# Persist across sessions — add to shell profile
-echo 'export AWS_PROFILE=my-company-dev' >> ~/.bashrc   # bash
-# PowerShell: Add to $PROFILE: $env:AWS_PROFILE = "my-company-dev"
-```
-
-### Step 5 — Check effective permissions (day-one sanity checks)
-```bash
-# Who am I?
-aws sts get-caller-identity
-
-# What can I reach?
-aws s3 ls                          # list buckets
-aws lambda list-functions          # list Lambdas (paginated)
-aws ec2 describe-regions           # basic EC2 access
-aws logs describe-log-groups       # CloudWatch Logs
-
-# What permissions does this role have?
-aws iam list-attached-role-policies \
-  --role-name $(aws sts get-caller-identity --query 'Arn' --output text | cut -d'/' -f2) 2>/dev/null || \
-aws iam get-user 2>/dev/null
-```
-
-### Step 6 — Terraform backend bootstrap (run once per fresh account)
-Run this before the first `terraform init`. Creates S3 state bucket + DynamoDB lock table.
-
-```bash
-# Set once; all commands below use these vars
-export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-export ENV=dev          # or prod
-export PROJECT=myproject
-export REGION=us-east-1
-
-# --- S3 state bucket ---
-aws s3api create-bucket \
-  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
-  --region "$REGION" \
-  --create-bucket-configuration LocationConstraint="$REGION"
-
-aws s3api put-bucket-versioning \
-  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
-  --versioning-configuration Status=Enabled
-
-aws s3api put-bucket-encryption \
-  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
-  --server-side-encryption-configuration \
-  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
-
-aws s3api put-public-access-block \
-  --bucket "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}" \
-  --public-access-block-configuration \
-  "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
-
-# --- DynamoDB lock table ---
-aws dynamodb create-table \
-  --table-name "${PROJECT}-${ENV}-terraform-lock" \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --region "$REGION"
-
-echo "Bootstrap done. Add this to infra/envs/${ENV}/backend.tf:"
-cat <<EOF
-terraform {
-  backend "s3" {
-    bucket         = "${PROJECT}-${ENV}-terraform-state-${ACCOUNT_ID}"
-    key            = "${ENV}/terraform.tfstate"
-    region         = "${REGION}"
-    dynamodb_table = "${PROJECT}-${ENV}-terraform-lock"
-    encrypt        = true
-  }
-}
-EOF
-```
-
-### Windows AWS CLI — non-negotiable rules (learned from real failures)
-
-**Always use the full binary path** — `aws` is not on PATH in a fresh shell until the terminal is restarted after install:
-```bash
-AWS="C:/Program Files/Amazon/AWSCLIV2/aws.exe"
-"$AWS" sts get-caller-identity
-```
-
-**Never pass JSON inline from PowerShell** — PowerShell mangles the quotes. Two safe patterns:
-
-```bash
-# Pattern A: single-quoted string in Git Bash (recommended)
-"$AWS" iam create-role \
-  --role-name my-role \
-  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[...]}'
-
-# Pattern B: write to file, pass with fileb:// for binary (zip) or as string for JSON
-[System.IO.File]::WriteAllText("C:\tmp\policy.json", '{"Version":...}')  # no BOM
-"$AWS" iam create-role --assume-role-policy-document (Get-Content "C:\tmp\policy.json" -Raw)
-```
-
-**`file://` paths don't work on Windows** for `--assume-role-policy-document`. Use inline JSON (Bash) or `Get-Content -Raw` (PowerShell) instead.
-
-**`fileb://` paths for zip files** require forward slashes:
-```bash
-"$AWS" lambda create-function --zip-file "fileb://C:/Users/you/function.zip" ...
-```
-
-**IAM propagation delay** — always `Start-Sleep 12` (PowerShell) or `sleep 12` (bash) between `create-role` and `lambda create-function`. Without this, Lambda returns `InvalidParameterValueException: cannot be assumed`.
-
-### New-job day-one checklist
-- [ ] AWS CLI v2 installed — `aws --version`
-- [ ] SSO profile configured — `aws configure sso`
-- [ ] Login completed — `aws sso login --profile <name>`
-- [ ] Identity verified — `aws sts get-caller-identity`
-- [ ] `AWS_PROFILE` persisted in shell profile
-- [ ] Permissions checked — `aws s3 ls`, `aws lambda list-functions`
-- [ ] Terraform state bootstrap done (or confirmed bucket/table already exists)
-- [ ] `backend.tf` written with correct bucket/table/region
-- [ ] AGENTS.md + CLAUDE.md created in the repo root
-- [ ] `claude/CONTEXT.md` created with current state
 
 ---
 

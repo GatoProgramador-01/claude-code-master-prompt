@@ -324,6 +324,32 @@ claude-code-master-prompt/
 
 ---
 
+## Built with this prompt
+
+Projects developed end-to-end using this `CLAUDE.md` as the AI pair programmer's instruction set:
+
+### [medium-agent-factory](https://github.com/GatoProgramador-01/medium-agent-factory)
+
+A LangGraph multi-agent pipeline that researches, writes, fact-checks, and iteratively revises Medium posts until every quality gate passes.
+
+```
+306 tests (248 backend + 58 frontend) · TDD throughout · 41 sprints
+```
+
+| What it demonstrates | Technology |
+|---------------------|-----------|
+| Stateful multi-agent orchestration | LangGraph (StateGraph + conditional edges) |
+| LLM-as-judge evaluation | G-Eval 4-axis rubric (EMNLP 2023) |
+| Parallel async fact-checking | Tavily claim extraction + verification |
+| 3-layer quality architecture | Deterministic (Python) + LLM rubric + config gates |
+| SSE streaming | FastAPI → Next.js EventSource |
+| LLMOps | Eval-in-CI, prompt versioning, LangSmith tracing |
+| Multi-model cost switching | Anthropic / DeepSeek / Ollama — single factory fn |
+| AWS IaC | Terraform: App Runner + ECS Fargate options |
+| CI/CD | 5-job GitHub Actions + Railway/Vercel deploy |
+
+---
+
 ## Who this is for
 
 - **Full-stack developers** on Next.js + FastAPI + MongoDB who want Claude to enforce their team's standards automatically
