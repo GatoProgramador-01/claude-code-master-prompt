@@ -403,6 +403,132 @@ This machine runs Windows 10. Bash tool calls run inside Git Bash, which can los
 
 ---
 
+## PRE-COMMIT / PRE-PUSH VALIDATION STANDARD (non-negotiable)
+
+Every project must have a validation gate before code reaches the remote. The split below is mandatory — it balances speed (pre-commit must be fast) against completeness (pre-push runs the real test suite).
+
+### Split responsibility
+
+| Gate | When | Max time | What runs |
+|------|------|----------|-----------|
+| **pre-commit** | Every `git commit` | < 10s | Format (Prettier/Black), lint (ESLint/Ruff), `tsc --noEmit` |
+| **pre-push** | Every `git push` | < 90s | Unit tests, build check, mypy |
+| **CI (PR gate)** | On PR open/update | Minutes | E2E (Playwright/pytest e2e), security scan, Docker build |
+| **Claude Code hook** | Every Write/Edit | Instant | Auto-format the file just written |
+
+Playwright **never** runs pre-commit or pre-push — it requires a running server, is too slow, and belongs in CI.
+
+### Node.js / Next.js setup — husky + lint-staged
+
+```bash
+npm install husky lint-staged --save-dev
+npx husky install
+npx husky add .husky/pre-commit "npx lint-staged"
+npx husky add .husky/pre-push "npm run test:unit && npm run build"
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "husky install",
+    "test:unit": "jest --bail",
+    "build": "next build"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+    "*.{css,json,md}": ["prettier --write"]
+  }
+}
+```
+
+TypeScript check in pre-commit — must use `pass_filenames: false` or it breaks tsconfig:
+```bash
+# .husky/pre-commit (add after lint-staged)
+npx tsc --noEmit
+```
+
+### Python / FastAPI setup — pre-commit framework
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff lint
+        entry: ruff check --fix
+        language: system
+        types: [python]
+      - id: black
+        name: black format
+        entry: black
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy type check
+        entry: mypy --strict
+        language: system
+        types: [python]
+        pass_filenames: false
+```
+
+```bash
+pip install pre-commit && pre-commit install
+```
+
+### Claude Code auto-format hook (PostToolUse)
+
+Already wired in `.claude/settings.json` via `auto-black.sh`. For TypeScript, extend it:
+
+```json
+{
+  "PostToolUse": [{
+    "matcher": "Edit|Write",
+    "hooks": [{
+      "type": "command",
+      "command": "bash .claude/hooks/auto-format.sh"
+    }]
+  }]
+}
+```
+
+```bash
+# .claude/hooks/auto-format.sh — runs after every file write
+FILE=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // empty')
+case "$FILE" in
+  *.py) python -m black --quiet "$FILE" 2>/dev/null ;;
+  *.ts|*.tsx) npx prettier --write "$FILE" 2>/dev/null ;;
+esac
+```
+
+### Validate sub-agent — run all checks before committing
+
+When implementing code and about to commit, spawn this to validate first:
+
+```yaml
+# .claude/agents/validate.md
+name: validate
+description: Run full validation suite before committing — type check, lint, unit tests, build. Blocks if anything fails.
+tools: Bash
+model: haiku
+maxTurns: 8
+---
+Run validation in this exact order. Stop and report the first failure — do not continue past failures.
+
+1. tsc --noEmit              (frontend)
+2. npx eslint . --max-warnings 0
+3. npm run test:unit -- --bail
+4. npm run build
+5. mypy --strict app/        (backend)
+6. ruff check .              (backend)
+7. pytest tests/ -x -q       (backend)
+
+Report: PASS or FAIL with the first failing command and its output.
+```
+
+---
+
 ## CORE RULES
 - Private repos: `gh repo create --private`
 - Format before commit: Black / Prettier / ESLint
