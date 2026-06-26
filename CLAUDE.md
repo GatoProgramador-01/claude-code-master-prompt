@@ -28,7 +28,16 @@ Plan             → architecture decisions, implementation strategy before codi
 general-purpose  → multi-step research spanning many files or external sources
 claude-code-guide → questions about Claude Code features, API, hooks, MCP
 lain-specialist  → NEVER use (see feedback memory)
+custom agents    → define in .claude/agents/<name>.md; add isolation: worktree for parallel file edits
 ```
+
+### Worktrees — parallel implementation without conflicts
+For parallel *implementation* (not just research), use `isolation: worktree` in agent frontmatter — each agent gets its own temporary branch + checkout; parallel edits never collide.
+- Add `.claude/worktrees/` to `.gitignore`
+- Add `.worktreeinclude` at repo root to auto-copy `.env` etc. into each worktree
+- `claude agents` in terminal → agent view showing all running sessions
+- `/fork <task>` → forks current conversation as a background subagent (inherits full context)
+- Resume background agent via `SendMessage` to agent ID or type name
 
 ### Parallel agent pattern (always write all tool calls in one message block)
 ```
@@ -49,6 +58,132 @@ Then: copy results, commit all three together.
 
 ### Batch tool calls too (not just agents)
 Independent Bash, Read, Grep, and Glob calls in the same turn must also be sent simultaneously — not in serial. Apply the same parallelism rule to all tool calls, not just Agent.
+
+---
+
+## HOOKS — AUTOMATION & SAFETY
+
+Configure in `.claude/settings.json` (project, commit to git) or `~/.claude/settings.json` (user-level, personal).
+
+**Exit codes:** `exit 2` + stderr = block action · `exit 0` + JSON stdout = structured decision · `exit 0` = proceed normally  
+**PreToolUse** is the only event where `exit 2` blocks the action before it runs.
+
+### `.claude/settings.json` — project hooks (commit this)
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{
+          "type": "command",
+          "if": "Edit(*.py)|Write(*.py)",
+          "command": "jq -r '.tool_input.file_path' | xargs .venv/Scripts/python -m black --quiet 2>/dev/null"
+        }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "if": "Bash(git push --force*)",
+          "command": "echo 'Force push blocked — confirm with user first.' >&2 && exit 2"
+        }]
+      }
+    ]
+  }
+}
+```
+
+### `~/.claude/settings.json` — user hooks (Windows idle notification)
+```json
+{
+  "hooks": {
+    "Notification": [{
+      "matcher": "idle_prompt",
+      "hooks": [{
+        "type": "command",
+        "command": "powershell.exe -Command \"[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.MessageBox]::Show('Claude is waiting', 'Claude Code')\""
+      }]
+    }]
+  }
+}
+```
+
+**Key events:** `PreToolUse` · `PostToolUse` · `Notification` (idle_prompt) · `Stop` (after turn — good for running tests)  
+**Matcher syntax:** `"Bash"` · `"Edit|Write"` · `"mcp__.*"` — use `if` field for argument-level filtering  
+**Audit:** `/hooks` command shows all configured hooks, sources, and matchers
+
+---
+
+## SKILLS / SLASH COMMANDS
+
+Stored in `.claude/skills/<name>/SKILL.md` (project) or `~/.claude/skills/<name>/SKILL.md` (user). Invoke: `/skill-name [args]`.
+
+### Frontmatter
+```yaml
+---
+description: "Deploy to Railway staging"       # drives Claude auto-invocation — be specific
+argument-hint: "[service]"                     # shown in /skills autocomplete
+arguments: [service]                           # enables $service variable
+disable-model-invocation: true                 # manual-only (use for deploy/commit/send)
+allowed-tools: Bash(git:*) Bash(npm:*)         # pre-approved — no per-call permission prompt
+model: haiku                                   # override model for this skill
+isolation: worktree                            # isolated git checkout for side effects
+paths: ["backend/**"]                          # only activate for these file patterns
+---
+```
+
+### Pre-execution shell injection
+`` !`command` `` runs BEFORE Claude reads the skill — injects live state (test output, git diff, env):
+```markdown
+## Current test failures
+!`cd backend && .venv/Scripts/python -m pytest tests/ -q --tb=line 2>&1 | tail -20`
+
+Analyze failures above and fix root causes.
+```
+
+**Template vars:** `$ARGUMENTS` (all args) · `$0`/`$1` (positional) · `${CLAUDE_SKILL_DIR}` (skill's own directory)  
+**Manage:** `/skills` list · `/reload-skills` pick up new files
+
+---
+
+## CUSTOM AGENTS (.claude/agents/)
+
+Define reusable subagent specialists in `.claude/agents/<name>.md` (project) or `~/.claude/agents/<name>.md` (user).
+
+```yaml
+---
+name: code-reviewer
+description: Expert code review — proactively invoke for security and correctness audits
+tools: Read, Grep, Glob, Bash
+model: sonnet
+isolation: worktree
+background: true
+maxTurns: 20
+---
+
+Senior code reviewer. Report each issue with: severity · file:line · concrete fix.
+Focus on: input validation, auth, N+1 queries, missing error handling, hardcoded secrets.
+```
+
+**Worktree setup** — add to `.gitignore` and create `.worktreeinclude`:
+```
+# .gitignore
+.claude/worktrees/
+
+# .worktreeinclude (auto-copies gitignored files into each new worktree)
+.env
+.env.local
+```
+
+**baseRef:** Default branches from `origin/HEAD`. Override in `.claude/settings.json`:
+```json
+{ "worktree": { "baseRef": "head" } }
+```
+
+**Resume:** `SendMessage` to agent ID (`~/.claude/projects/{id}/subagents/`) or by type name · Depth limit: 5 levels · Prefer breadth-first (many level-1) over deep nesting
 
 ---
 
@@ -97,6 +232,7 @@ This machine runs Windows 10. Bash tool calls run inside Git Bash, which can los
 - Private repos: `gh repo create --private`
 - Format before commit: Black / Prettier / ESLint
 - Security `.gitignore` on every repo
+- MCP servers: configured in `.mcp.json` (project root, commit to git) or `~/.claude.json` (user) — NEVER in `settings.json`; use `${ENV_VAR}` syntax for secrets
 - NestJS: CLI only, never hand-write boilerplate
 - Playwright: `browser_run_code` only, never `browser_snapshot`
 - IaC: Terraform only, never click-ops in AWS console for persistent resources
