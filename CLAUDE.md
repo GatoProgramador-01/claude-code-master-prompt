@@ -293,6 +293,36 @@ docker compose logs -f backend
 - When modifying a service, rebuild only that service: `docker compose up --build backend`
 - Never commit `docker-compose.override.yml` — use it locally for personal overrides (add to `.gitignore`)
 
+### Pre-commit Docker build gate (non-negotiable)
+
+Every project must have a pre-commit hook that runs `docker compose build` when dependency or Dockerfile files change. This prevents the most common class of production breakage: code that runs locally but fails in Docker because a new package was added to the code but not to the manifest.
+
+```bash
+# .claude/hooks/pre-commit-docker-build.sh
+# Triggered by: git hook or Claude Code PreToolUse on Bash(git commit*)
+
+CHANGED=$(git diff --cached --name-only)
+
+NEEDS_BUILD=false
+for f in $CHANGED; do
+  case "$f" in
+    *pyproject.toml|*requirements*.txt|*Dockerfile*|*package.json|*package-lock.json|*docker-compose*.yml)
+      NEEDS_BUILD=true
+      break
+      ;;
+  esac
+done
+
+if [ "$NEEDS_BUILD" = "true" ]; then
+  echo "Dependency/Dockerfile change detected — running docker compose build..."
+  docker compose build || { echo "Docker build failed — commit blocked." >&2; exit 2; }
+fi
+```
+
+Wire this as a `PreToolUse` Claude Code hook (matcher: `Bash(git commit*)`) OR as a standard `pre-commit` git hook at `.git/hooks/pre-commit`. Either catches it before the commit lands.
+
+**What this prevents:** A package added to source code but not to `pyproject.toml` or `package.json` passes all unit tests (which run in the native env where it's installed globally) but crashes the Docker container at startup — exactly the class of bug that only surfaces at deploy time.
+
 ---
 
 ## WINDOWS ENVIRONMENT RULES
