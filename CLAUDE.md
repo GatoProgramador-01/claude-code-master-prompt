@@ -189,54 +189,77 @@ Focus on: input validation, auth, N+1 queries, missing error handling, hardcoded
 
 ## TOKEN EFFICIENCY — SUB-AGENT CONFIGURATION (non-negotiable)
 
-### Model per role — always set explicitly in agent frontmatter
+### Model routing — hard rules, no exceptions
 
-| Role | `model:` | Reason |
-|------|----------|--------|
-| File search, grep, lint, format, build check | `haiku` | 10× cheaper than Sonnet; no reasoning required |
-| Code review, test writing, implementation | `sonnet` | Daily default — balanced reasoning and cost |
-| Architecture decisions, complex tradeoffs | `opus` | Rare; only when Sonnet falls short |
+| Task type | Model | Rationale |
+|-----------|-------|-----------|
+| Read files, search symbols, grep, glob, audit CSS/HTML | `haiku` | 10× cheaper; no reasoning needed |
+| Lint, format check, build validation, docker check | `haiku` | Deterministic output; Sonnet is overkill |
+| Write/rewrite a single component or module | `sonnet` | Needs reasoning to match patterns and conventions |
+| Code review, test writing, multi-file refactor | `sonnet` | Default for anything requiring judgment |
+| Architecture decisions, cross-cutting tradeoffs | `opus` | Rare — only when Sonnet produces shallow output |
 
-Never rely on `inherit` (copies parent model). An Opus parent spawning 5 Haiku workers saves ~80% on research tasks.
+**Never use `inherit`** — it copies the parent model. A Sonnet parent spawning 5 Haiku workers saves ~80% on research. An Opus parent is catastrophically expensive if workers inherit it.
 
-### maxTurns per agent type (mandatory)
+### maxTurns — hard caps per agent type
+
 ```yaml
-maxTurns: 6    # research / explore — return findings fast
-maxTurns: 8    # leaf workers — deterministic tasks (lint, build, test)
-maxTurns: 15   # implementation agents — need iteration cycles
-maxTurns: 12   # coordinator agents — spawn and collect sub-agents
+maxTurns: 5    # pure read / explore (haiku) — finds answer or gives up fast
+maxTurns: 8    # leaf worker — lint, build, test, format (haiku)
+maxTurns: 12   # single-file implementation (sonnet)
+maxTurns: 20   # multi-file implementation or complex refactor (sonnet)
+maxTurns: 10   # coordinator — spawns sub-agents, collects summaries (sonnet)
 ```
 
-### Context rules
-- Sub-agents receive **only their delegation prompt** — NOT the parent's conversation history. Write delegation prompts of 200–500 tokens max. Never paste full conversation.
-- **Explore / Plan agents skip CLAUDE.md entirely** — use them for all read-only searches (cheapest option).
-- Parent sees **only the final summary** from each sub-agent. A sub-agent doing 50K tokens of work returns a ~200 token summary to parent. Use `background: true` to prevent even that from blocking.
-- `context: fork` gives the sub-agent the full parent conversation — use only when the sub-agent genuinely needs it (rare).
+If an agent needs more turns, the task is too large — split it.
 
-### Tool call efficiency
-- Always pass `head_limit: 20` to Grep — prevents 100+ match returns that bloat context 90%.
-- `allowed-tools` in agent frontmatter = **security + focus only**, does NOT reduce token count (tool schemas still load).
-- Batch independent Read / Grep / Glob calls in one message (latency savings, marginal token savings).
+### Delegation prompt discipline — hard cap 300 tokens
+
+- Write delegation prompts in 200–300 tokens max. Never paste file contents, conversation history, or full diffs into a prompt.
+- Tell the agent WHERE to look (file path + line range), not WHAT it will find.
+- If the agent needs context from a file, let it read the file itself — don't pre-load it into the prompt.
+- One agent = one clear deliverable. "Rewrite component X to match design Y" — not "review, rewrite, and test."
+
+### Result discipline — agents return summaries, not raw output
+
+- Agents must summarize findings in ≤ 200 tokens before returning to parent. Raw file contents, full diffs, or log dumps stay inside the agent's context.
+- If the deliverable is a file change, the agent writes the file — the parent receives "done, wrote X" not the file contents.
+- Use `background: true` for fire-and-forget workers. Parent receives the summary async, does not block.
+
+### Spawn threshold — don't over-agent
+
+- Do NOT spawn an agent to edit 1 file. Use Edit/Write directly — spawning costs ~2K tokens in overhead.
+- Spawn only when: (a) 3+ independent files, (b) task needs isolation from parent context, or (c) task can run in parallel with other work.
+- For a 2-file change where files are in the same module, just do both in the parent turn.
+
+### Tool schema cost — restrict tools in agent frontmatter
+
+```yaml
+tools: Read Grep Glob          # haiku explore agent — 3 schemas loaded
+tools: Read Grep Glob Bash     # adds bash — still cheap
+tools: Read Grep Glob Write Edit Bash   # sonnet implementation agent
+```
+
+Every tool listed = its full JSON schema loaded at agent start. `mcp__mongodb__*` = 20+ schemas. Never give an agent tools it won't use.
 
 ### Prompt cache management
-- **Never switch models mid-session** — invalidates the entire prompt cache (full recompute on next turn).
-- Run `/compact` at task boundaries, not mid-task. Preserves system + project cache layer.
-- Order CLAUDE.md: stable rules first (architecture, style) → volatile info last (sprint goals, blockers).
-- Batch related queries in one session instead of multiple sessions: ~87% token savings on cache reads.
-- API key users: set `ENABLE_PROMPT_CACHING_1H=1` to extend TTL from 5 min to 1 hour.
 
-### CLAUDE.md size target
-This file targets **200 lines**. Extended domain rules live in `.claude/rules/<domain>/<topic>.md` with `paths:` frontmatter — they load **only when a matching file is read**, costing zero tokens otherwise.
+- **Never switch models mid-session** — full cache invalidation on next turn.
+- Run `/compact` at task boundaries only — never mid-task.
+- Batch all independent Grep / Read / Glob calls in one message turn (parallel tool calls = 1 cache read, not N).
+- CLAUDE.md stable content first → volatile last (sprint goals at bottom, not top).
+- API users: `ENABLE_PROMPT_CACHING_1H=1` extends TTL from 5 min → 1 hour.
 
-| Rule type | Where it lives | When it loads |
-|-----------|---------------|---------------|
-| Core cross-cutting rules | Root `CLAUDE.md` | Every turn |
-| Language/framework rules | `.claude/rules/<domain>/*.md` with `paths:` | Only when matching file is read |
-| Repeatable workflows | `.claude/skills/<name>/SKILL.md` | Only when `/skill` invoked |
-| Reusable agent behaviors | `.claude/agents/<name>.md` | Only when agent is spawned |
+### CLAUDE.md size target — 200 lines
 
-**`@file` imports in CLAUDE.md are NOT lazy** — they expand at load time and add to per-turn cost.  
-Rules in `.claude/rules/` **without** `paths:` load unconditionally at session start (same as CLAUDE.md).
+Extended rules in `.claude/rules/<domain>/<topic>.md` with `paths:` frontmatter load **only when a matching file is touched** — zero cost otherwise. `@file` imports are NOT lazy: they expand at load time every turn.
+
+| Rule type | Where | Loads |
+|-----------|-------|-------|
+| Core cross-cutting | Root `CLAUDE.md` | Every turn |
+| Language/framework rules | `.claude/rules/<domain>/*.md` + `paths:` | On matching file read |
+| Repeatable workflows | `.claude/skills/<name>/SKILL.md` | On `/skill` invocation |
+| Agent behaviors | `.claude/agents/<name>.md` | On agent spawn |
 
 ---
 
