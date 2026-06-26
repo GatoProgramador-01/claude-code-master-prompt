@@ -1075,3 +1075,90 @@ Always parameterize model names — never hardcode inline.
 - LangSmith tracing enabled and project name set per environment
 - All prompts in `prompts/` — none hardcoded in agent files
 - `get_llm(role)` factory used everywhere — no direct `ChatAnthropic` instantiation
+
+---
+
+## README STANDARD — PORTFOLIO-GRADE TEMPLATE (non-negotiable)
+
+Every new project README must follow the structure below. This template is derived from `medium-agent-factory` — a production LLMOps project with a validated, portfolio-grade README. Never generate a minimal README. Never generate one section without the others.
+
+### Required sections in order
+
+1. **Centered header block** (HTML `<div align="center">`)
+   - Project title as `# H1`
+   - Badge row: CI badge, language/framework badges, license badge — all on one line using `[![label](shield-url)](link)` syntax
+   - One-sentence tagline in bold describing what the project does and its measurable outcome
+   - Links line: `[Live Demo](url) | Backend hosted on Platform | [View Source](url)`
+
+2. **`## The Problem`**
+   - 2–4 paragraphs. Open with a specific, painful scenario — something any developer would recognize. Name the exact failure mode (suspiciously round statistics, no sources, word count 1,062 not 1,300). End with a rhetorical question that the project answers. No bullet points here — prose only. The problem section is a narrative hook, not a feature list.
+
+3. **`## Live Demo`** (if deployed)
+   - URL + platform note. Include cold-start warning for free-tier services.
+
+4. **`## How It Works — The Story Arc`**
+   - Three `### Act N — Title` subsections. Each act is 1–3 paragraphs covering one generation of the architecture: what it was, what insight changed it, what it became. No bullet points — prose only. End with a **validation run table** (post | words | score | eligible | revisions).
+
+5. **`## Architecture`**
+   - Two named `### SubSection` blocks, each with a fenced `mermaid` flowchart (`flowchart TD`). First diagram: full pipeline end-to-end. Second diagram: the core quality/eval sub-system.
+
+6. **`## Quality Gates`** (or equivalent decision table)
+   - Table: Gate | Config Key | Threshold | What It Blocks. 4+ rows. Config keys must match actual env var names.
+
+7. **`## G-Eval Axes`** (or equivalent rubric table)
+   - Formula line: `score = mean(axis1, axis2, ...)`. Table: Axis | 1.0 Description | 0.0 Description. Descriptions are concrete behaviors, not abstract adjectives.
+
+8. **`## Tech Stack`**
+   - Two-column table: Layer | Technology. Group by concern (orchestration, LLM, storage, API, frontend, testing, CI/CD, deploy). No prose.
+
+9. **`## LLMOps`**
+   - `### 3-Layer Eval Architecture` — table (Layer | Cost | Model | Trigger | Gate) + 2-sentence explanation of CI cost and time budget
+   - `### Prompt Versioning` — 1 paragraph + code block showing `prompt_loader.py` pattern
+   - `### LangSmith Tracing` — 1 paragraph listing trace metadata fields
+   - `### Quality Snapshot Analytics` — 1 paragraph + JSON example + aggregation query
+
+10. **`## Test Suite`**
+    - Lead line: `N total — X backend + Y frontend. TDD throughout (Red → Green → Refactor).` Then one sentence about the rule (no `// TODO: add tests`). Directory tree with inline comments (`← what each file tests`). Frontend glob pattern.
+
+11. **`## Quick Start`**
+    - `### Prerequisites` list (Python version, Node version, DB, API keys)
+    - `### Backend` — bash block: venv, OS-specific activate (Git Bash + macOS/Linux), pip install, cp .env.example, PowerShell Start-Process server start, pytest
+    - `### Frontend` — bash block: npm install, cp .env.local.example, npm run dev
+    - `### Generate a post` (or equivalent API call) — curl examples for the primary endpoint + stream + secondary endpoint
+    - `### Docker` — `docker compose up --build`
+
+12. **`## Alternative LLM Backends`** (if applicable)
+    - 1 paragraph on the factory pattern. Bash block with 2+ `USE_X=true` examples. Docker note for base URL.
+
+13. **`## Environment Variables`**
+    - Three-column table: Variable | Default | Description. Cover all env vars. Mark required ones with `—` in Default.
+
+14. **`## Skills Demonstrated`**
+    - Opening sentence: "This project was built as a portfolio piece demonstrating production-grade [domain] engineering." Table: Skill | Where — `Where` column links to actual file paths (e.g., `backend/app/agents/orchestrator.py`). 8–12 rows. Each skill names the specific technique and standard (e.g., "G-Eval LLM-as-judge (EMNLP 2023)").
+
+15. **`## Project Structure`**
+    - Single fenced code block. Two-level tree (no more). Inline `←` comments on key files only. Group: backend/app/agents, backend/app/routers, backend/prompts, backend/evals, frontend/src/components, infra/, .github/workflows/.
+
+16. **`<details><summary>Sprint History</summary>`**
+    - Collapsible. Table: Sprint | What Shipped. At least 10 rows. Written in past tense, concrete deliverables ("G-Eval rubric: 4 axes, 0.0–1.0 scale"), not vague ("improved quality").
+
+17. **`## License`**
+    - One line: `MIT — see [LICENSE](LICENSE).`
+
+### What makes the README stand out
+
+- **Prose narrative** in The Problem and Story Arc — no bullet lists in those two sections
+- **Validation run data** — real numbers from a real run, not placeholders
+- **Mermaid diagrams** — two, always, always `flowchart TD`
+- **Skills table maps to file paths** — reviewer can click and find the code
+- **Sprint history in `<details>`** — shows velocity + learning arc without cluttering the page
+- **Config keys match code** — every env var in the table must exist in `config.py` / `.env.example`
+- **OS-specific Quick Start** — Git Bash activate AND macOS/Linux activate; PowerShell for background server
+
+### Anti-patterns to avoid
+- Generic tagline like "A Python project" — must describe measurable output
+- Bullet-list Problem section — kills the narrative hook
+- Missing Mermaid diagrams — they are non-negotiable
+- `// TODO: add tests` anywhere in test directory tree
+- Skills table with vague entries like "Used LangChain" — name the pattern, cite the paper/spec
+- Placeholder data like `N/A` or `TBD` in the validation run table — run it first
