@@ -28,7 +28,7 @@ Always decompose independent work into parallel Agent calls. Max 5 simultaneous.
 - **haiku**: read/search/lint/format/build — 10× cheaper, no reasoning needed
 - **sonnet**: write/rewrite/review/multi-file refactor — default for judgment
 - **opus**: architecture cross-cutting tradeoffs only — rare
-- **Router-as-Haiku**: for mixed workloads, let Haiku 4.5 classify the query first (~$0.01) then route to Sonnet/Opus only when needed — 50–80% cost reduction on high-volume pipelines
+- **Router-as-Haiku**: for mixed workloads, Haiku 4.5 classifier routes complex queries → Sonnet/Opus (~$0.01 overhead, 50–80% cost reduction on high-volume pipelines)
 
 ### Delegation discipline (hard caps)
 - Prompts: max 300 tokens. Point to file paths + line ranges — never paste content.
@@ -48,7 +48,9 @@ Key hooks:
 - PreToolUse (Bash): block `git push --force*` with exit 2
 - User-level: Windows MessageBox notification on idle_prompt
 
-Session: `/rewind` restores context after accidental `/clear`
+Session: `/compact` at task boundaries — compresses history, stays in context (saves ~40% tokens on long sessions)  
+         `/rewind` restores context after accidental `/clear`  
+         `/effort` sets reasoning depth (low/medium/high) when you need faster or deeper responses
 
 ---
 
