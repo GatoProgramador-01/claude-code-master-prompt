@@ -267,6 +267,34 @@ Every backend and frontend change **must** follow Red → Green → Refactor. Th
 
 ---
 
+## LOCAL DEVELOPMENT — DOCKER FIRST (non-negotiable)
+
+Always raise the local environment using Docker. Never start services directly with `uvicorn`, `npm run dev`, or bare process commands for local development. Every project must be runnable as a production-like environment via `docker compose up --build`.
+
+**Why:** Every company has a local Docker workflow that mirrors production. Raw process startup hides dependency drift, missing env vars, and port conflicts that Docker catches. Docker is the standard; native startup is the fallback for emergencies only.
+
+```bash
+# Always prefer this
+docker compose up --build
+
+# With a specific profile (e.g., local LLM via Ollama)
+docker compose --profile local-llm up --build
+
+# Detached — check logs separately
+docker compose up --build -d
+docker compose logs -f backend
+```
+
+**Rules:**
+- `docker compose up --build` is the default answer to "start the project locally"
+- Every project must have a `docker-compose.yml` at root that wires backend + frontend + DB
+- `.worktreeinclude` must copy `.env` into worktrees so Docker picks it up correctly
+- `docker compose down` to stop; `docker compose down -v` to also wipe volumes (data reset)
+- When modifying a service, rebuild only that service: `docker compose up --build backend`
+- Never commit `docker-compose.override.yml` — use it locally for personal overrides (add to `.gitignore`)
+
+---
+
 ## WINDOWS ENVIRONMENT RULES
 This machine runs Windows 10. Bash tool calls run inside Git Bash, which can lose working-directory context between invocations.
 
