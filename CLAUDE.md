@@ -21,6 +21,7 @@ Always decompose independent work into parallel Agent calls. Max 5 simultaneous.
 | claude-code-guide | sonnet | 10 | Claude Code features, API, hooks, MCP |
 | validate | haiku | 8 | lint/type/test/build before commit → `.claude/agents/validate.md` |
 | scraper | sonnet | 20 | web scraping tasks → `.claude/agents/scraper.md` |
+| Writer/Reviewer | sonnet | 2 sessions | Session A writes; Session B reviews diff in fresh context — no author bias |
 
 **NEVER use lain-specialist.**
 
@@ -46,11 +47,27 @@ Key hooks:
 - PostToolUse (Edit|Write): auto-format `.py` → black | `.ts/.tsx` → prettier
 - PostToolUse (Bash): compress verbose build output — pipe through `grep -E "(ERROR|error|WARN|FAIL)" | head -200` before Claude reads it (10K lines → 200)
 - PreToolUse (Bash): block `git push --force*` with exit 2
+- Stop hook: verification script that blocks turn-end until it passes — strongest gate for unattended runs
 - User-level: Windows MessageBox notification on idle_prompt
 
-Session: `/compact` at task boundaries — compresses history, stays in context (saves ~40% tokens on long sessions)  
-         `/rewind` restores context after accidental `/clear`  
-         `/effort` sets reasoning depth (low/medium/high) when you need faster or deeper responses
+Session: `/compact` at task boundaries | `/compact Focus on API changes` to scope what survives compaction  
+         `/btw <question>` — answer in overlay, NEVER enters context (zero token cost for side questions)  
+         `/rewind` (or `Esc+Esc`) restores conversation + code to any prior checkpoint  
+         `/rename <name>` names sessions like branches | `claude --continue` / `--resume` for multi-day tasks  
+         `/effort` sets reasoning depth (low/medium/high) | `/goal <condition>` re-checks after every turn
+
+---
+
+## CLAUDE.MD HYGIENE
+Keep short — bloated files cause rules to be ignored. For each line: "Would removing this cause mistakes?" If not, cut it.  
+Import files inline: `@path/to/file` inside CLAUDE.md loads that file into context (use for team-shared docs).  
+`CLAUDE.local.md` at project root = personal overrides, never committed (add to `.gitignore`).  
+Domain-specific rules → `.claude/rules/` with path patterns (only load when matching files are touched).
+
+## SKILLS (`.claude/skills/<name>/SKILL.md`)
+Domain knowledge loaded on-demand — not every session. Apply automatically when relevant, or invoke with `/skill-name`.  
+Use `disable-model-invocation: true` for workflow skills with side effects (e.g. `/fix-issue 1234`).  
+Prefer skills over adding to CLAUDE.md for knowledge that's only needed sometimes.
 
 ---
 
@@ -85,35 +102,29 @@ Pre-commit hook: `docker compose build` when Dockerfile/deps change — catches 
 ---
 
 ## CORE RULES
-- Private repos: `gh repo create --private`
 - Secrets: AWS Secrets Manager/SSM — never in code, committed `.env`, or `.tfvars`
 - MCP servers: `.mcp.json` at project root (never `settings.json`), `${ENV_VAR}` for secrets
 - Naming: `{project}-{env}-{service}-{resource}`
 - IaC: Terraform only — no click-ops for persistent AWS resources
-- NestJS: CLI only (`nest g resource`) — never hand-write boilerplate
 - Playwright: `browser_run_code` only — never `browser_snapshot`
-- Tagging: `Environment` + `Project` + `ManagedBy=terraform` on all AWS resources
 - Branch: `git branch --show-current` before writing any workflow `branches:` trigger
 
 ---
 
 ## PYTHON
-Prefer comprehensions | `dataclass`/`NamedTuple` over plain class | specific exceptions | early returns | no bare `except:`  
-`str | None` union syntax (Python 3.10+) — not `Optional[str]`  
 Flat-layout fix: `[tool.setuptools.packages.find] include = ["app*"]` when `evals/` or `scripts/` sit next to `app/`
 
 ---
 
 ## NODE.JS / NESTJS
-ESM strict TypeScript. NestJS via CLI only (`nest g`). MCP: `@Tool({ name, description, parameters: z.object({}) })`
+NestJS via CLI only (`nest g resource`) — never hand-write boilerplate.  
+MCP tools: `@Tool({ name, description, parameters: z.object({}) })`
 
 ---
 
 ## REACT / NEXT.JS
-Server Components by default | `"use client"` only when needed  
-State: local → Zustand → React Query (never Redux unless pre-existing)  
-Forms: React Hook Form + Zod | Styling: Tailwind CSS  
-No prop drilling >2 levels | `getByRole` > `getByText` > `getByTestId`
+State: local → Zustand → React Query (never Redux unless pre-existing).  
+Tests: `getByRole` > `getByText` > `getByTestId`
 
 ---
 
@@ -141,39 +152,19 @@ Critical: unique test class names | no `__init__.py` in tests/ | Motor event loo
 
 ---
 
+## AUTOMATION (headless)
+`claude -p "prompt"` — non-interactive, for CI/cron/scripts.  
+`claude -p "..." --output-format stream-json --verbose` — streaming JSON for pipelines.  
+`claude -p "..." --allowedTools "Edit,Bash(git commit *)"` — scoped permissions for batch runs.  
+`claude --permission-mode auto -p "..."` — classifier safety for unattended runs (blocks scope escalation).  
+Fan-out: `for file in $(cat files.txt); do claude -p "migrate $file" --allowedTools "Edit"; done`
+
+---
+
 ## README STANDARD
 16 required sections. Prose in Problem + Story Arc. Two Mermaid diagrams. Sprint history in `<details>`.
 
 ---
 
 ## .gitignore defaults
-`.env` `.env.*` `*.pem` `*.key` `credentials.json` `*.tfstate*` `.terraform/` `node_modules/` `dist/` `.next/` `build/` `__pycache__/` `.venv/` `.claude/worktrees/`
-
----
-
-## HUMAN-IN-THE-LOOP (primordial skill — non-negotiable)
-
-Every major output is a **draft** until the human explicitly approves it.  
-"Done" means "the human reviewed and accepted" — not "the pipeline completed successfully."
-
-### Mandatory review cycle
-1. **Present before declaring done** — show the artifact (post, plan, migration, deploy) before closing the task
-2. **Surface specific risks** — flag unverifiable claims, sources needing manual checking, quality gate failures, or anything the user should spot-check
-3. **Request explicit sign-off** — ask "Does this meet your requirements? Want to revise [X]?"
-4. **Iterate until satisfied** — each feedback round is a new Red→Green→Refactor pass; never argue against revision requests
-5. **Never self-approve creative or editorial output** — even if metrics pass, the human decides if it's ready
-
-### For content pipelines (Medium Agent Factory and similar)
-- After pipeline completes: surface title + quality score + word count + boost-eligible + verified source count
-- List UNVERIFIABLE claims the fact-checker flagged — user decides if those are acceptable
-- Ask "Ready to publish?" before any publish/promote/exemplar action — never auto-publish
-- If quality score < 0.85 or fact-check flagged HIGH-severity issues: proactively offer to re-run with tighter instructions
-- For guides the user will actually follow (tutorials, how-tos, setup guides): extra scrutiny — every step must be verifiable
-
-### For infrastructure and deployment tasks
-- Always show `terraform plan` output and wait for approval before `apply`
-- For any destructive change (drop table, delete branch, remove secret): explicit confirmation required even if user said "do it"
-- CI/CD config changes: show the diff and expected pipeline behavior before committing
-
-### The default posture
-When in doubt, show and ask. The cost of an extra confirmation round is zero compared to publishing wrong information, deploying broken infra, or delivering output that misses the intent.
+`.env` `.env.*` `*.pem` `*.key` `credentials.json` `*.tfstate*` `.terraform/` `node_modules/` `dist/` `.next/` `build/` `__pycache__/` `.venv/` `.claude/worktrees/` `CLAUDE.local.md`
