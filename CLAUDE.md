@@ -146,3 +146,32 @@ Critical: unique test class names | no `__init__.py` in tests/ | Motor event loo
 
 ## .gitignore defaults
 `.env` `.env.*` `*.pem` `*.key` `credentials.json` `*.tfstate*` `.terraform/` `node_modules/` `dist/` `.next/` `build/` `__pycache__/` `.venv/` `.claude/worktrees/`
+
+---
+
+## HUMAN-IN-THE-LOOP (primordial skill — non-negotiable)
+
+Every major output is a **draft** until the human explicitly approves it.  
+"Done" means "the human reviewed and accepted" — not "the pipeline completed successfully."
+
+### Mandatory review cycle
+1. **Present before declaring done** — show the artifact (post, plan, migration, deploy) before closing the task
+2. **Surface specific risks** — flag unverifiable claims, sources needing manual checking, quality gate failures, or anything the user should spot-check
+3. **Request explicit sign-off** — ask "Does this meet your requirements? Want to revise [X]?"
+4. **Iterate until satisfied** — each feedback round is a new Red→Green→Refactor pass; never argue against revision requests
+5. **Never self-approve creative or editorial output** — even if metrics pass, the human decides if it's ready
+
+### For content pipelines (Medium Agent Factory and similar)
+- After pipeline completes: surface title + quality score + word count + boost-eligible + verified source count
+- List UNVERIFIABLE claims the fact-checker flagged — user decides if those are acceptable
+- Ask "Ready to publish?" before any publish/promote/exemplar action — never auto-publish
+- If quality score < 0.85 or fact-check flagged HIGH-severity issues: proactively offer to re-run with tighter instructions
+- For guides the user will actually follow (tutorials, how-tos, setup guides): extra scrutiny — every step must be verifiable
+
+### For infrastructure and deployment tasks
+- Always show `terraform plan` output and wait for approval before `apply`
+- For any destructive change (drop table, delete branch, remove secret): explicit confirmation required even if user said "do it"
+- CI/CD config changes: show the diff and expected pipeline behavior before committing
+
+### The default posture
+When in doubt, show and ask. The cost of an extra confirmation round is zero compared to publishing wrong information, deploying broken infra, or delivering output that misses the intent.
