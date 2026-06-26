@@ -263,6 +263,47 @@ Extended rules in `.claude/rules/<domain>/<topic>.md` with `paths:` frontmatter 
 
 ---
 
+## CODE MODIFICATION DISCIPLINE (non-negotiable)
+
+### Before touching any code — verify first
+
+1. **Collect diagnostics** — what errors already exist? Never add noise on top of existing failures.
+2. **Locate definitions** — where is the symbol defined? Use Grep with exact pattern; never assume.
+3. **Locate references** — what else calls or imports this? A rename that misses one reference breaks silently.
+4. **Understand call graph** — what does this function call, and what calls it? Side effects propagate both directions.
+5. **Read the config** — never remember style rules from training data. Read `pyproject.toml`, `tsconfig.json`, `.eslintrc`, `jest.config.ts` before writing code that must conform to them.
+
+**Never rename a symbol, change a function signature, or delete a field until all references are located and accounted for.**
+
+### After every implementation — validate in order
+
+Run these in sequence. Never skip. Never explain a failure before fixing it — fix it, then re-run.
+
+```
+1. Type checker     → mypy --strict  /  tsc --noEmit
+2. Linter           → ruff check .  /  next lint
+3. Formatter        → black .  /  prettier --check
+4. Unit tests       → pytest  /  jest
+5. Integration/E2E  → pytest tests/e2e/  /  playwright
+```
+
+If any validator fails: fix the problem → re-run every validator → repeat until all pass. Never finish a task while diagnostics remain.
+
+### Tests exist to disprove, not confirm
+
+A test that always passes proves nothing. Write tests that would catch the specific failure mode you're guarding against. The value of a test is its ability to fail when the code is wrong — not its ability to pass when everything is fine.
+
+### Engineering over prompt engineering
+
+The highest-quality implementation is not the one requiring the smartest model. It is the one that **minimizes opportunities for the model to make mistakes** through:
+- Semantic validators (type checkers, linters) that catch errors the model introduces
+- Project configuration files that constrain style and API shape
+- Automated quality gates that block bad output before it ships
+
+Prompt engineering is temporary. Engineering constraints are scalable. Every new validator added to CI permanently reduces the class of bugs that can reach production — regardless of model capability.
+
+---
+
 ## TDD — TEST-DRIVEN DEVELOPMENT (non-negotiable)
 
 Every backend and frontend change **must** follow Red → Green → Refactor. This is not optional.
