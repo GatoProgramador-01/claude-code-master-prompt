@@ -187,6 +187,59 @@ Focus on: input validation, auth, N+1 queries, missing error handling, hardcoded
 
 ---
 
+## TOKEN EFFICIENCY — SUB-AGENT CONFIGURATION (non-negotiable)
+
+### Model per role — always set explicitly in agent frontmatter
+
+| Role | `model:` | Reason |
+|------|----------|--------|
+| File search, grep, lint, format, build check | `haiku` | 10× cheaper than Sonnet; no reasoning required |
+| Code review, test writing, implementation | `sonnet` | Daily default — balanced reasoning and cost |
+| Architecture decisions, complex tradeoffs | `opus` | Rare; only when Sonnet falls short |
+
+Never rely on `inherit` (copies parent model). An Opus parent spawning 5 Haiku workers saves ~80% on research tasks.
+
+### maxTurns per agent type (mandatory)
+```yaml
+maxTurns: 6    # research / explore — return findings fast
+maxTurns: 8    # leaf workers — deterministic tasks (lint, build, test)
+maxTurns: 15   # implementation agents — need iteration cycles
+maxTurns: 12   # coordinator agents — spawn and collect sub-agents
+```
+
+### Context rules
+- Sub-agents receive **only their delegation prompt** — NOT the parent's conversation history. Write delegation prompts of 200–500 tokens max. Never paste full conversation.
+- **Explore / Plan agents skip CLAUDE.md entirely** — use them for all read-only searches (cheapest option).
+- Parent sees **only the final summary** from each sub-agent. A sub-agent doing 50K tokens of work returns a ~200 token summary to parent. Use `background: true` to prevent even that from blocking.
+- `context: fork` gives the sub-agent the full parent conversation — use only when the sub-agent genuinely needs it (rare).
+
+### Tool call efficiency
+- Always pass `head_limit: 20` to Grep — prevents 100+ match returns that bloat context 90%.
+- `allowed-tools` in agent frontmatter = **security + focus only**, does NOT reduce token count (tool schemas still load).
+- Batch independent Read / Grep / Glob calls in one message (latency savings, marginal token savings).
+
+### Prompt cache management
+- **Never switch models mid-session** — invalidates the entire prompt cache (full recompute on next turn).
+- Run `/compact` at task boundaries, not mid-task. Preserves system + project cache layer.
+- Order CLAUDE.md: stable rules first (architecture, style) → volatile info last (sprint goals, blockers).
+- Batch related queries in one session instead of multiple sessions: ~87% token savings on cache reads.
+- API key users: set `ENABLE_PROMPT_CACHING_1H=1` to extend TTL from 5 min to 1 hour.
+
+### CLAUDE.md size target
+This file targets **200 lines**. Extended domain rules live in `.claude/rules/<domain>/<topic>.md` with `paths:` frontmatter — they load **only when a matching file is read**, costing zero tokens otherwise.
+
+| Rule type | Where it lives | When it loads |
+|-----------|---------------|---------------|
+| Core cross-cutting rules | Root `CLAUDE.md` | Every turn |
+| Language/framework rules | `.claude/rules/<domain>/*.md` with `paths:` | Only when matching file is read |
+| Repeatable workflows | `.claude/skills/<name>/SKILL.md` | Only when `/skill` invoked |
+| Reusable agent behaviors | `.claude/agents/<name>.md` | Only when agent is spawned |
+
+**`@file` imports in CLAUDE.md are NOT lazy** — they expand at load time and add to per-turn cost.  
+Rules in `.claude/rules/` **without** `paths:` load unconditionally at session start (same as CLAUDE.md).
+
+---
+
 ## TDD — TEST-DRIVEN DEVELOPMENT (non-negotiable)
 
 Every backend and frontend change **must** follow Red → Green → Refactor. This is not optional.
