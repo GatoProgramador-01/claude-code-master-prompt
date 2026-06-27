@@ -121,14 +121,14 @@ fmt_tok() {
     }'
 }
 
-# ── Join non-empty parts with │ ───────────────────────────
-PIPE=" ${DIM}│${RESET} "
+# ── Join non-empty parts with  ·  separator ───────────────
+SEP="  ${DIM}·${RESET}  "
 join_parts() {
     local first=1
     for p in "$@"; do
         [ -z "$p" ] && continue
         if [ $first -eq 1 ]; then printf '%b' "$p"; first=0
-        else printf '%b%b' "$PIPE" "$p"; fi
+        else printf '%b%b' "$SEP" "$p"; fi
     done
     printf '\n'
 }
@@ -140,44 +140,45 @@ p1_head="${MAGENTA}${BOLD}(Φ.Φ) 🐾${RESET}"
 p1_dir="${CYAN}${BOLD}${dir}${RESET}"
 
 if [ -n "$session_name" ]; then
-    p1_session="${MAGENTA}😺 ${BOLD}${session_name}${RESET}${DIM}(${elapsed_fmt})${RESET}"
+    p1_session="${MAGENTA}😺  ${BOLD}${session_name}${RESET}  ${DIM}(${elapsed_fmt})${RESET}"
 elif [ -n "$branch" ]; then
-    p1_session="${MAGENTA}😺 ${BOLD}${branch}${RESET}${DIM}(${elapsed_fmt})${RESET}"
+    p1_session="${MAGENTA}😺  ${BOLD}${branch}${RESET}  ${DIM}(${elapsed_fmt})${RESET}"
 else
-    p1_session="${DIM}😺 ${elapsed_fmt}${RESET}"
+    p1_session="${DIM}😺  ${elapsed_fmt}${RESET}"
 fi
 
-p1_model="${YELLOW}🐈‍⬛ ${BOLD}${model}${RESET}"
+p1_model="${YELLOW}🐈‍⬛  ${BOLD}${model}${RESET}"
 
 p1_branch=""
 if [ -n "$branch" ] && [ -n "$session_name" ]; then
-    p1_branch="${GREEN}⎇ ${branch}${RESET}"
+    p1_branch="${GREEN}⎇  ${branch}${RESET}"
 fi
-[ "${staged:-0}"   -gt 0 ] && p1_branch+=" ${GREEN}+${staged}s${RESET}"
-[ "${modified:-0}" -gt 0 ] && p1_branch+=" ${YELLOW}~${modified}m${RESET}"
+[ "${staged:-0}"   -gt 0 ] && p1_branch+="  ${GREEN}+${staged} staged${RESET}"
+[ "${modified:-0}" -gt 0 ] && p1_branch+="  ${YELLOW}~${modified} mod${RESET}"
 
-p1_effort=""; [ -n "$effort"   ] && p1_effort="${DIM}🐾 ${effort}${RESET}"
-p1_vim="";    [ -n "$vim_mode" ] && p1_vim="${GREEN}⌨️[${vim_mode}]${RESET}"
-p1_clock="${BLUE}😺 ${BOLD}${clock}${RESET}"
+p1_effort="";  [ -n "$effort"   ] && p1_effort="${DIM}🐾  effort: ${BOLD}${effort}${RESET}"
+p1_vim="";     [ -n "$vim_mode" ] && p1_vim="${GREEN}vim [${vim_mode}]${RESET}"
+p1_clock="${BLUE}🕐  ${BOLD}${clock}${RESET}"
 
-join_parts "${p1_head} ${p1_dir}" "$p1_session" "$p1_model" "$p1_branch" "$p1_effort" "$p1_vim" "$p1_clock"
+join_parts "${p1_head}  ${p1_dir}" "$p1_session" "$p1_model" "$p1_branch" "$p1_effort" "$p1_vim" "$p1_clock"
 
-# ══ LINE 2: CONTEXTO + COSTOS ══════════════════════════════
-p2_bar="${bar_color}${bar}${RESET} ${BOLD}${pct_int}%${RESET}"
-p2_rem=""; [ -n "$remaining_tok" ] && p2_rem="${DIM}💾 ${WHITE}${remaining_tok}${RESET}"
+# ══ LINE 2: CONTEXTO + LÍMITES + COSTOS ════════════════════
+p2_bar="${bar_color}${bar}${RESET}  ${BOLD}${pct_int}% ctx${RESET}"
+p2_rem=""
+[ -n "$remaining_tok" ] && p2_rem="${DIM}💾  ${WHITE}${remaining_tok} libres${RESET}"
 
 rate_parts=()
 if [ -n "$five_h" ]; then
     five_fmt=$(printf '%.0f' "$five_h")
     if   [ "$five_fmt" -ge 90 ]; then rc="$RED"
     elif [ "$five_fmt" -ge 70 ]; then rc="$YELLOW"; else rc="$GREEN"; fi
-    rate_parts+=("${DIM}⏱️5h:${RESET}${rc}${BOLD}${five_fmt}%${RESET}")
+    rate_parts+=("${DIM}5h: ${RESET}${rc}${BOLD}${five_fmt}%${RESET}")
 fi
 if [ -n "$seven_d" ]; then
     seven_fmt=$(printf '%.0f' "$seven_d")
     if   [ "$seven_fmt" -ge 90 ]; then rc7="$RED"
     elif [ "$seven_fmt" -ge 70 ]; then rc7="$YELLOW"; else rc7="$GREEN"; fi
-    rate_parts+=("${DIM}📅sem:${RESET}${rc7}${BOLD}${seven_fmt}%${RESET}")
+    rate_parts+=("${DIM}sem: ${RESET}${rc7}${BOLD}${seven_fmt}%${RESET}")
 fi
 
 p2_cost=""
@@ -189,36 +190,48 @@ if [ -n "$cost_est" ]; then
         elif awk_cmp "$val" ">=" 0.10; then ce_color="$YELLOW"
         else ce_color="$GREEN"; fi
     fi
-    p2_cost="${ce_color}${BOLD}💰 ${cost_est}${RESET}"
+    p2_cost="${ce_color}${BOLD}💰  ${cost_est}${RESET}"
 fi
 
 p2_cache=""
 if [ -n "$cache_hit" ]; then
     if   [ "$cache_hit_num" -ge 60 ]; then chc="$GREEN"
     elif [ "$cache_hit_num" -ge 30 ]; then chc="$YELLOW"; else chc="$RED"; fi
-    p2_cache="${DIM}🐾 caché:${RESET}${chc}${BOLD}${cache_hit}${RESET}"
+    p2_cache="${DIM}🐾  cache: ${RESET}${chc}${BOLD}${cache_hit}${RESET}"
 fi
 
-join_parts "${DIM}🐱${RESET} ${p2_bar}" "$p2_rem" "${rate_parts[@]}" "$p2_cost" "$p2_cache"
+# cache written (compact — only if nonzero)
+p2_cache_w=""
+if [ "$cache_create" -gt 0 ]; then
+    cc_fmt=$(fmt_tok "$cache_create")
+    p2_cache_w="${DIM}📦  ${cc_fmt} written${RESET}"
+fi
 
-# ══ LINE 3: CÓDIGO ═════════════════════════════════════════
+join_parts "${DIM}🐱${RESET}  ${p2_bar}" "$p2_rem" "${rate_parts[@]}" "$p2_cost" "$p2_cache" "$p2_cache_w"
+
+# ══ LINE 3: CÓDIGO + TOKENS ════════════════════════════════
 code_parts=()
 if [ "$edit_count" -gt 0 ] || [ "$lines_added" -gt 0 ] || [ "$lines_deleted" -gt 0 ]; then
-    code_parts+=("${GREEN}${BOLD}+${lines_added}${RESET}${DIM}añ${RESET}")
-    code_parts+=("${RED}${BOLD}-${lines_deleted}${RESET}${DIM}borr${RESET}")
-    code_parts+=("${CYAN}📁${files_edited}${RESET}")
-    code_parts+=("${YELLOW}✏️${edit_count}edits${RESET}")
+    # net change
+    net=$(( lines_added - lines_deleted ))
+    net_sign=""; [ "$net" -ge 0 ] && net_sign="+"
+    code_parts+=("${GREEN}${BOLD}+${lines_added}${RESET}  ${DIM}añ${RESET}")
+    code_parts+=("${RED}${BOLD}-${lines_deleted}${RESET}  ${DIM}borr${RESET}")
+    code_parts+=("${DIM}net: ${RESET}${BOLD}${net_sign}${net}${RESET}")
+    code_parts+=("${CYAN}📁  ${files_edited} arch${RESET}")
+    code_parts+=("${YELLOW}✏️   ${edit_count} edits${RESET}")
 else
-    code_parts+=("${DIM}sin edits${RESET}")
+    code_parts+=("${DIM}sin edits aun${RESET}")
 fi
 
-tok_in_fmt=$(fmt_tok "$total_in"); tok_out_fmt=$(fmt_tok "$total_out")
+tok_in_fmt=$(fmt_tok "$total_in")
+tok_out_fmt=$(fmt_tok "$total_out")
 if [ "$total_in" -gt 0 ] || [ "$total_out" -gt 0 ]; then
-    code_parts+=("${DIM}📨${WHITE}${tok_in_fmt}${RESET}")
-    code_parts+=("${DIM}📤${WHITE}${tok_out_fmt}${RESET}")
+    code_parts+=("${DIM}in: ${WHITE}${tok_in_fmt}${RESET}")
+    code_parts+=("${DIM}out: ${WHITE}${tok_out_fmt}${RESET}")
 fi
 
-printf '%b ' "${DIM}🐱 código:${RESET}"
+printf '%b  ' "${DIM}🐱  codigo:${RESET}"
 join_parts "${code_parts[@]}"
 
 # ══ PANTHER BAR ════════════════════════════════════════════
