@@ -77,6 +77,8 @@ Session: `/compact` at task boundaries | `/compact Focus on API changes` to scop
 
 **Shell run discipline (non-negotiable):** Never leave a shell process running unattended without an explicit timeout or `--limit`. Every Bash command visible to the user must complete in ≤ 10 minutes. Long scraping jobs run in background via PowerShell `Start-Process` and are never awaited in-session. Kill orphaned processes immediately when discovered (`Get-Process -Name node | Stop-Process -Force`). Never chain long runs with `&&` that the user has to watch.
 
+**Scraping output isolation (non-negotiable):** Every extraction run writes to its own timestamped folder (`output/runs/YYYY-MM-DD-HHMM/`). PDFs go to a shared store (`output/pdfs/`) since their filenames are idempotent. Never reuse an output path across runs. Never add `--fresh-output` to a command that targets a folder with prior data — use a new timestamped folder instead. Parallel workers (one per sector/district) each write to their own file inside the run folder; the orchestrator merges after all workers complete.
+
 ---
 
 ## CLAUDE.MD HYGIENE
