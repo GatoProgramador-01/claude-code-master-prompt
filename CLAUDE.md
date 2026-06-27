@@ -37,6 +37,23 @@ Always decompose independent work into parallel Agent calls. Max 5 simultaneous.
 - Spawn threshold: 3+ independent files, or isolation needed, or parallelism. Not for single-file edits.
 - Batch independent Grep/Read/Glob in one message turn — parallel tool calls share one cache read.
 
+### Dual-agent collaboration (Claude Code + external agent e.g. Codex)
+Split by **layer**, not task. Never assign two agents the same file concurrently.
+
+| Layer | Claude Code | Codex / external |
+|-------|-------------|------------------|
+| Implementation | Write/Edit/Bash | — |
+| Review | — | Diff review, risk flags |
+| Docs/README | — | Prose, diagrams, sprint notes |
+| Validation | Run tests, build | Checklist sign-off |
+| Research | Web search + apply | Deep audit, requirements trace |
+
+**Handoff protocol** — always pass: (1) artifact path + commit hash, (2) what changed and why, (3) what to verify, (4) known risks or open questions. Never handoff "in progress" work — complete your layer before handing over.
+
+**Conflict prevention** — concurrent writes to the same file = sequential only. Use orchestrator pattern: one agent proposes, other reviews, human approves merge. If agents disagree, synthesize both (don't vote) — present merged recommendation with tradeoffs.
+
+**Task assignment** — sequential by layer: architecture → types → implementation → tests → docs. Concurrent by module: agents own separate files/packages with zero overlap. Never split refactor + feature to same agent in parallel.
+
 ---
 
 ## HOOKS
@@ -123,6 +140,14 @@ Flat-layout fix: `[tool.setuptools.packages.find] include = ["app*"]` when `eval
 ## NODE.JS / NESTJS
 NestJS via CLI only (`nest g resource`) — never hand-write boilerplate.  
 MCP tools: `@Tool({ name, description, parameters: z.object({}) })`
+
+**File structure discipline (non-negotiable):**  
+- One responsibility per file. Parser files parse. Mapper files map. Types in `types.ts`. No logic in index files.  
+- Prefer many small focused files over one large file. A 40-line file is better than a 200-line file.  
+- Folder layout mirrors the domain: `src/parser/`, `src/session/`, `src/pdf/`, `src/jsf/`, `src/models/`, `src/utils/`.  
+- Never put inline helpers in the same file as the main function if the helper is >10 lines or reusable.  
+- Type definitions live in `src/types.ts` (public API) and `src/models/` (internal shapes). Never define types inline in implementation files.  
+- Constants in dedicated files (`src/config/constants.ts`) — never magic numbers in business logic.
 
 ---
 
