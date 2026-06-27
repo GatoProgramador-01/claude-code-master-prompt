@@ -58,6 +58,8 @@ Session: `/compact` at task boundaries | `/compact Focus on API changes` to scop
 
 **Context budget discipline (non-negotiable):** At 30% usage remaining — stop new features, commit all WIP, generate a Codex handoff prompt with: branch, last commit, files changed, commands to validate, next tasks. Hand off cleanly rather than running out mid-implementation.
 
+**Shell run discipline (non-negotiable):** Never leave a shell process running unattended without an explicit timeout or `--limit`. Every Bash command visible to the user must complete in ≤ 10 minutes. Long scraping jobs run in background via PowerShell `Start-Process` and are never awaited in-session. Kill orphaned processes immediately when discovered (`Get-Process -Name node | Stop-Process -Force`). Never chain long runs with `&&` that the user has to watch.
+
 ---
 
 ## CLAUDE.MD HYGIENE
