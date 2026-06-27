@@ -56,6 +56,8 @@ Session: `/compact` at task boundaries | `/compact Focus on API changes` to scop
          `/rename <name>` names sessions like branches | `claude --continue` / `--resume` for multi-day tasks  
          `/effort` sets reasoning depth (low/medium/high) | `/goal <condition>` re-checks after every turn
 
+**Context budget discipline (non-negotiable):** At 30% usage remaining — stop new features, commit all WIP, generate a Codex handoff prompt with: branch, last commit, files changed, commands to validate, next tasks. Hand off cleanly rather than running out mid-implementation.
+
 ---
 
 ## CLAUDE.MD HYGIENE
