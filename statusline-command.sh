@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Claude Code status line — 3 lines + panther bar
-# Line 1: IDENTIDAD   — project | session (elapsed) | model | branch | effort | clock
-# Line 2: CONTEXTO    — bar % | libres | 5h | semana | costo | caché hit
-# Line 3: CÓDIGO      — +añadidas | -borradas | archivos | edits | entrada | salida
-# Line 4: panther bar
+# Claude Code status line — 1 dense line + panther bar
+# EVERYTHING on line 1: project · session · model · branch · clock · ctx · libres · limits · cost · cache · code +/-
 
 export PATH="$PATH:/c/Users/lanitaEmperadora/AppData/Local/Microsoft/WinGet/Packages/jqlang.jq_Microsoft.Winget.Source_8wekyb3d8bbwe"
 
@@ -33,12 +30,12 @@ CYAN='\033[0;36m'; YELLOW='\033[0;33m'; GREEN='\033[0;32m'; RED='\033[0;31m'
 BLUE='\033[0;34m'; MAGENTA='\033[0;35m'; WHITE='\033[1;37m'
 DIM='\033[2m'; BOLD='\033[1m'; RESET='\033[0m'
 
-clock=$(date +"%H:%M:%S")
-term_w=$(tput cols 2>/dev/null || echo 100)
+clock=$(date +"%H:%M")
+term_w=$(tput cols 2>/dev/null || echo 120)
 
-# ── Context bar (16 blocks) ────────────────────────────────
+# ── Context bar (12 blocks) ────────────────────────────────
 pct_int=${pct:-0}
-filled=$((pct_int * 16 / 100)); empty=$((16 - filled))
+filled=$((pct_int * 12 / 100)); empty=$((12 - filled))
 [ "$filled" -gt 0 ] && printf -v _f "%${filled}s" && bar="${_f// /█}" || bar=""
 [ "$empty"  -gt 0 ] && printf -v _e "%${empty}s"  && bar="${bar}${_e// /░}"
 if   [ "$pct_int" -ge 90 ]; then bar_color="$RED"
@@ -121,8 +118,8 @@ fmt_tok() {
     }'
 }
 
-# ── Join non-empty parts with  ·  separator ───────────────
-SEP="  ${DIM}·${RESET}  "
+# ── Join non-empty parts with  |  ─────────────────────────
+SEP="  ${DIM}|${RESET}  "
 join_parts() {
     local first=1
     for p in "$@"; do
@@ -135,104 +132,105 @@ join_parts() {
 
 awk_cmp() { awk "BEGIN{exit !($1 $2 $3)}"; }
 
-# ══ LINE 1: IDENTIDAD ══════════════════════════════════════
-p1_head="${MAGENTA}${BOLD}(Φ.Φ) 🐾${RESET}"
-p1_dir="${CYAN}${BOLD}${dir}${RESET}"
+# ══ SINGLE LINE: everything ════════════════════════════════
+
+# identity
+p_head="${MAGENTA}${BOLD}(Φ.Φ)${RESET}"
+p_dir="${CYAN}${BOLD}${dir}${RESET}"
 
 if [ -n "$session_name" ]; then
-    p1_session="${MAGENTA}😺  ${BOLD}${session_name}${RESET}  ${DIM}(${elapsed_fmt})${RESET}"
+    # truncate session name to 28 chars so line doesn't explode
+    sname="${session_name:0:28}"
+    [ "${#session_name}" -gt 28 ] && sname="${sname}.."
+    p_session="${MAGENTA}${sname}${RESET} ${DIM}(${elapsed_fmt})${RESET}"
 elif [ -n "$branch" ]; then
-    p1_session="${MAGENTA}😺  ${BOLD}${branch}${RESET}  ${DIM}(${elapsed_fmt})${RESET}"
+    p_session="${MAGENTA}${branch}${RESET} ${DIM}(${elapsed_fmt})${RESET}"
 else
-    p1_session="${DIM}😺  ${elapsed_fmt}${RESET}"
+    p_session="${DIM}${elapsed_fmt}${RESET}"
 fi
 
-p1_model="${YELLOW}🐈‍⬛  ${BOLD}${model}${RESET}"
+p_model="${YELLOW}${model}${RESET}"
 
-p1_branch=""
+p_branch=""
 if [ -n "$branch" ] && [ -n "$session_name" ]; then
-    p1_branch="${GREEN}⎇  ${branch}${RESET}"
+    p_branch="${GREEN}⎇ ${branch}${RESET}"
 fi
-[ "${staged:-0}"   -gt 0 ] && p1_branch+="  ${GREEN}+${staged} staged${RESET}"
-[ "${modified:-0}" -gt 0 ] && p1_branch+="  ${YELLOW}~${modified} mod${RESET}"
+[ "${staged:-0}"   -gt 0 ] && p_branch="${p_branch}${p_branch:+ }${GREEN}+${staged}s${RESET}"
+[ "${modified:-0}" -gt 0 ] && p_branch="${p_branch}${p_branch:+ }${YELLOW}~${modified}m${RESET}"
 
-p1_effort="";  [ -n "$effort"   ] && p1_effort="${DIM}🐾  effort: ${BOLD}${effort}${RESET}"
-p1_vim="";     [ -n "$vim_mode" ] && p1_vim="${GREEN}vim [${vim_mode}]${RESET}"
-p1_clock="${BLUE}🕐  ${BOLD}${clock}${RESET}"
+p_effort=""; [ -n "$effort" ] && p_effort="${DIM}effort:${BOLD}${effort}${RESET}"
+p_vim="";    [ -n "$vim_mode" ] && p_vim="${GREEN}vim[${vim_mode}]${RESET}"
+p_clock="${BLUE}${clock}${RESET}"
 
-join_parts "${p1_head}  ${p1_dir}" "$p1_session" "$p1_model" "$p1_branch" "$p1_effort" "$p1_vim" "$p1_clock"
+# context
+p_ctx="${bar_color}${bar}${RESET} ${BOLD}${pct_int}%${RESET}"
+p_rem=""; [ -n "$remaining_tok" ] && p_rem="${DIM}💾 ${WHITE}${remaining_tok}${RESET}"
 
-# ══ LINE 2: CONTEXTO + LÍMITES + COSTOS ════════════════════
-p2_bar="${bar_color}${bar}${RESET}  ${BOLD}${pct_int}% ctx${RESET}"
-p2_rem=""
-[ -n "$remaining_tok" ] && p2_rem="${DIM}💾  ${WHITE}${remaining_tok} libres${RESET}"
-
-rate_parts=()
+# rate limits
+p_5h=""; p_7d=""
 if [ -n "$five_h" ]; then
     five_fmt=$(printf '%.0f' "$five_h")
-    if   [ "$five_fmt" -ge 90 ]; then rc="$RED"
-    elif [ "$five_fmt" -ge 70 ]; then rc="$YELLOW"; else rc="$GREEN"; fi
-    rate_parts+=("${DIM}5h: ${RESET}${rc}${BOLD}${five_fmt}%${RESET}")
+    if [ "$five_fmt" -ge 90 ]; then rc="$RED"; elif [ "$five_fmt" -ge 70 ]; then rc="$YELLOW"; else rc="$GREEN"; fi
+    p_5h="${DIM}5h:${RESET}${rc}${BOLD}${five_fmt}%${RESET}"
 fi
 if [ -n "$seven_d" ]; then
     seven_fmt=$(printf '%.0f' "$seven_d")
-    if   [ "$seven_fmt" -ge 90 ]; then rc7="$RED"
-    elif [ "$seven_fmt" -ge 70 ]; then rc7="$YELLOW"; else rc7="$GREEN"; fi
-    rate_parts+=("${DIM}sem: ${RESET}${rc7}${BOLD}${seven_fmt}%${RESET}")
+    if [ "$seven_fmt" -ge 90 ]; then rc7="$RED"; elif [ "$seven_fmt" -ge 70 ]; then rc7="$YELLOW"; else rc7="$GREEN"; fi
+    p_7d="${DIM}sem:${RESET}${rc7}${BOLD}${seven_fmt}%${RESET}"
 fi
 
-p2_cost=""
+# cost
+p_cost=""
 if [ -n "$cost_est" ]; then
     if echo "$cost_est" | grep -q '~\$0'; then ce_color="$DIM"
     else
         val=$(echo "$cost_est" | sed 's/\$//')
-        if   awk_cmp "$val" ">=" 1.0;  then ce_color="$RED"
+        if awk_cmp "$val" ">=" 1.0; then ce_color="$RED"
         elif awk_cmp "$val" ">=" 0.10; then ce_color="$YELLOW"
         else ce_color="$GREEN"; fi
     fi
-    p2_cost="${ce_color}${BOLD}💰  ${cost_est}${RESET}"
+    p_cost="${ce_color}${BOLD}💰 ${cost_est}${RESET}"
 fi
 
-p2_cache=""
+# cache
+p_cache=""
 if [ -n "$cache_hit" ]; then
-    if   [ "$cache_hit_num" -ge 60 ]; then chc="$GREEN"
+    if [ "$cache_hit_num" -ge 60 ]; then chc="$GREEN"
     elif [ "$cache_hit_num" -ge 30 ]; then chc="$YELLOW"; else chc="$RED"; fi
-    p2_cache="${DIM}🐾  cache: ${RESET}${chc}${BOLD}${cache_hit}${RESET}"
+    p_cache="${DIM}cache:${RESET}${chc}${BOLD}${cache_hit}${RESET}"
 fi
 
-# cache written (compact — only if nonzero)
-p2_cache_w=""
-if [ "$cache_create" -gt 0 ]; then
-    cc_fmt=$(fmt_tok "$cache_create")
-    p2_cache_w="${DIM}📦  ${cc_fmt} written${RESET}"
-fi
-
-join_parts "${DIM}🐱${RESET}  ${p2_bar}" "$p2_rem" "${rate_parts[@]}" "$p2_cost" "$p2_cache" "$p2_cache_w"
-
-# ══ LINE 3: CÓDIGO + TOKENS ════════════════════════════════
-code_parts=()
-if [ "$edit_count" -gt 0 ] || [ "$lines_added" -gt 0 ] || [ "$lines_deleted" -gt 0 ]; then
-    # net change
-    net=$(( lines_added - lines_deleted ))
-    net_sign=""; [ "$net" -ge 0 ] && net_sign="+"
-    code_parts+=("${GREEN}${BOLD}+${lines_added}${RESET}  ${DIM}añ${RESET}")
-    code_parts+=("${RED}${BOLD}-${lines_deleted}${RESET}  ${DIM}borr${RESET}")
-    code_parts+=("${DIM}net: ${RESET}${BOLD}${net_sign}${net}${RESET}")
-    code_parts+=("${CYAN}📁  ${files_edited} arch${RESET}")
-    code_parts+=("${YELLOW}✏️   ${edit_count} edits${RESET}")
-else
-    code_parts+=("${DIM}sin edits aun${RESET}")
-fi
-
-tok_in_fmt=$(fmt_tok "$total_in")
-tok_out_fmt=$(fmt_tok "$total_out")
+# tokens in/out
+tok_in_fmt=$(fmt_tok "$total_in"); tok_out_fmt=$(fmt_tok "$total_out")
+p_tok=""
 if [ "$total_in" -gt 0 ] || [ "$total_out" -gt 0 ]; then
-    code_parts+=("${DIM}in: ${WHITE}${tok_in_fmt}${RESET}")
-    code_parts+=("${DIM}out: ${WHITE}${tok_out_fmt}${RESET}")
+    p_tok="${DIM}in:${WHITE}${tok_in_fmt}${RESET} ${DIM}out:${WHITE}${tok_out_fmt}${RESET}"
 fi
 
-printf '%b  ' "${DIM}🐱  codigo:${RESET}"
-join_parts "${code_parts[@]}"
+# code stats
+p_code=""
+if [ "$edit_count" -gt 0 ] || [ "$lines_added" -gt 0 ]; then
+    net=$(( lines_added - lines_deleted ))
+    net_s=""; [ "$net" -ge 0 ] && net_s="+"
+    p_code="${GREEN}+${lines_added}${RESET}${DIM}/${RESET}${RED}-${lines_deleted}${RESET} ${DIM}(net:${net_s}${net})${RESET} ${CYAN}${edit_count}ed${RESET}"
+fi
+
+join_parts \
+    "${p_head} ${p_dir}" \
+    "$p_session" \
+    "$p_model" \
+    "$p_branch" \
+    "$p_effort" \
+    "$p_vim" \
+    "$p_clock" \
+    "$p_ctx" \
+    "$p_rem" \
+    "$p_5h" \
+    "$p_7d" \
+    "$p_cost" \
+    "$p_cache" \
+    "$p_tok" \
+    "$p_code"
 
 # ══ PANTHER BAR ════════════════════════════════════════════
 stripe_len=$(( term_w - 12 ))
