@@ -151,6 +151,30 @@ MCP tools: `@Tool({ name, description, parameters: z.object({}) })`
 - Type definitions live in `src/types.ts` (public API) and `src/models/` (internal shapes). Never define types inline in implementation files.  
 - Constants in dedicated files (`src/config/constants.ts`) — never magic numbers in business logic.
 
+**TSDoc standard — every exported function, no exceptions:**
+```typescript
+/**
+ * One-line summary shown in VS Code autocomplete (keep ≤ 60 chars).
+ *
+ * @remarks
+ * WHY this exists, edge cases, invariants, protocol quirks.
+ * Multi-paragraph OK. Omit only when the first line is fully self-evident.
+ *
+ * @param name - What it is and any constraints on valid values
+ * @returns What comes back, including sentinel values like `null` or `'done'`
+ * @throws {ErrorType} When and why this error is thrown
+ *
+ * @example
+ * ```typescript
+ * const result = myFn(arg); // rendered as highlighted code in hover card
+ * ```
+ */
+```
+Rules: `@param name - desc` with dash separator, never `{type}` (TypeScript has the types).  
+`@remarks` = the WHY block; omit only if the summary is fully self-sufficient.  
+`@example` only when the call site is non-obvious.  
+Internal non-exported helpers: one-line `/** summary */` is enough — no need for full block.
+
 ---
 
 ## REACT / NEXT.JS
