@@ -146,10 +146,29 @@ MCP tools: `@Tool({ name, description, parameters: z.object({}) })`
 **File structure discipline (non-negotiable):**  
 - One responsibility per file. Parser files parse. Mapper files map. Types in `types.ts`. No logic in index files.  
 - Prefer many small focused files over one large file. A 40-line file is better than a 200-line file.  
+- 150 lines = soft alarm. 300 lines = mandatory split. Section comments (`// ── Name ──`) inside a file signal it needs decomposition.  
 - Folder layout mirrors the domain: `src/parser/`, `src/session/`, `src/pdf/`, `src/jsf/`, `src/models/`, `src/utils/`.  
 - Never put inline helpers in the same file as the main function if the helper is >10 lines or reusable.  
 - Type definitions live in `src/types.ts` (public API) and `src/models/` (internal shapes). Never define types inline in implementation files.  
 - Constants in dedicated files (`src/config/constants.ts`) — never magic numbers in business logic.
+
+**Decomposition sprint recipe (when a file exceeds 150 lines):**  
+1. Identify concerns from section comments and distinct import clusters — each cluster becomes a file.  
+2. Spawn one agent per new file (max 3 parallel). Each writes with full TSDoc. One agent runs typecheck; others skip to avoid tsconfig contention.  
+3. Rewrite the orchestrator last — all imports must exist first.  
+4. Run `npm run ci` (typecheck + lint + tests) before committing. Fix, never skip.
+
+**Lifecycle narrative pattern — orchestrators only:**  
+Use `// ── Phase ───────` section comments inside the main function body so execution reads top-to-bottom as a narrative without tracing helper files:
+```typescript
+// ── Setup ─────────────────────────────────────────────────────────────────
+// ── Sector loop ────────────────────────────────────────────────────────────
+// ── Output ────────────────────────────────────────────────────────────────
+// ── Run metrics ────────────────────────────────────────────────────────────
+// ── Reports ────────────────────────────────────────────────────────────────
+```
+Each section is 5–15 lines. Readers navigate by scanning phase names, not by reading every line.  
+Apply only to orchestrator functions (>3 lifecycle phases). Never add section comments to helper files — single-responsibility files don't need them.
 
 **TSDoc standard — every exported function, no exceptions:**
 ```typescript
