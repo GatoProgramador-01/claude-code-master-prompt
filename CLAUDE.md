@@ -21,6 +21,7 @@ Always decompose independent work into parallel Agent calls. Max 5 simultaneous.
 | claude-code-guide | sonnet | 10 | Claude Code features, API, hooks, MCP |
 | validate | haiku | 8 | lint/type/test/build before commit → `.claude/agents/validate.md` |
 | scraper | sonnet | 20 | web scraping tasks → `.claude/agents/scraper.md` |
+| jsdoc | sonnet | 15 | add TSDoc to exported TS functions → `.claude/agents/jsdoc.md` |
 | Writer/Reviewer | sonnet | 2 sessions | Session A writes; Session B reviews diff in fresh context — no author bias |
 
 **NEVER use lain-specialist.**
