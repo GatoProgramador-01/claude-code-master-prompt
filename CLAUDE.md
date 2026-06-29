@@ -5,55 +5,57 @@ Senior tech lead + DevOps. Decisions balance cost, security, scalability, veloci
 
 ---
 
-## PARALLEL AGENTS — DEFAULT OPERATING MODE (non-negotiable)
+## PARALLEL AGENTS — GROUP OF EXPERTS (non-negotiable)
 
-Always decompose independent work into parallel Agent calls. Max 5 simultaneous. This is the default.
+**Minimum 3 agents per task. Default target: 5. Max: 8 simultaneous.**  
+Single-agent responses are the exception. Always decompose. Parallel is the default.
 
-**Parallelize:** research + implementation | multiple module rewrites | README + infra + CLAUDE.md | audit + test + lint  
+**Parallelize:** research + implementation | multiple module rewrites | audit + test + lint | Adversarial runs alongside every sprint  
 **Sequential only:** Task B needs Task A output | two agents writing the same file
 
-### Agent roster
-| Agent | Model | maxTurns | Use for |
-|-------|-------|----------|---------|
-| Explore | haiku | 5 | locate files, grep symbols — fast read-only |
-| Plan | sonnet | 10 | architecture decisions before coding |
-| general-purpose | sonnet | 20 | multi-step research across many files |
-| claude-code-guide | sonnet | 10 | Claude Code features, API, hooks, MCP |
-| validate | haiku | 8 | lint/type/test/build before commit → `.claude/agents/validate.md` |
-| scraper | sonnet | 20 | web scraping tasks → `.claude/agents/scraper.md` |
-| jsdoc | sonnet | 15 | add TSDoc to exported TS functions → `.claude/agents/jsdoc.md` |
-| Writer/Reviewer | sonnet | 2 sessions | Session A writes; Session B reviews diff in fresh context — no author bias |
+### Group of Experts — full roster
+| Agent | Model | File | Domain |
+|-------|-------|------|--------|
+| **Architect** | sonnet | `~/.claude/agents/architect.md` | Orchestrates team, decomposes tasks, routes experts |
+| **frontend-expert** | sonnet | `~/.claude/agents/frontend-expert.md` | React/Next.js/TS, SSE UI, Zustand, React Query, Jest+RTL |
+| **backend-expert** | sonnet | `~/.claude/agents/backend-expert.md` | FastAPI/NestJS, Motor DB, Pydantic v2, rate limiting |
+| **llmops-expert** | sonnet | `~/.claude/agents/llmops-expert.md` | LangGraph nodes, structured output, evals, observability |
+| **devops-expert** | sonnet | `~/.claude/agents/devops-expert.md` | Docker, GitHub Actions, Terraform, Railway/Vercel |
+| **researcher** | sonnet | `~/.claude/agents/researcher.md` | Web research, source verification, grounding facts |
+| **Adversarial** | sonnet | `~/.claude/agents/adversarial.md` | Attacks every design — after Architect, before Drafter |
+| **Drafter** | haiku | `~/.claude/agents/drafter.md` | TDD: RED tests first, then implementation |
+| **Integrator** | sonnet | `~/.claude/agents/integrator.md` | Wires orchestrator.py, resolves conflicts, commits |
+| **Analyst** | haiku | `~/.claude/agents/analyst.md` | Reads logs/DB/tests — no code writing |
+| **Validate** | haiku | `~/.claude/agents/validate.md` | type/lint/format/test gate before every commit |
+| **code-reviewer** | sonnet | project `.claude/agents/` | Security, cost safety, production-readiness |
+| **scraper** | sonnet | `~/.claude/agents/scraper.md` | HTTP/browser scrapers, anti-bot, ASP.NET |
+| **jsdoc** | sonnet | `~/.claude/agents/jsdoc.md` | TSDoc on TypeScript exports |
+
+### Standard workflow teams
+- **New pipeline feature**: Analyst + Architect (parallel) → Adversarial → llmops-expert + Drafter (parallel) → Validate → Integrator
+- **New API endpoint**: Architect → backend-expert + adversarial (parallel) → Validate → commit
+- **Frontend feature**: frontend-expert + adversarial (parallel) → Validate → jsdoc → commit
+- **Deploy/infra change**: devops-expert → adversarial → Validate → commit
+- **Research-backed post**: researcher (grounding) → Architect (topic string) → pipeline run
+- **Debug failing test**: Analyst → Adversarial (blind hypothesis) → Validate fix
+- **Full-stack feature**: frontend-expert + backend-expert + adversarial (all parallel) → Validate → Integrator
 
 **NEVER use lain-specialist.**
 
-### Model routing (hard rules)
-- **haiku**: read/search/lint/format/build — 10× cheaper, no reasoning needed
-- **sonnet**: write/rewrite/review/multi-file refactor — default for judgment
-- **opus**: architecture cross-cutting tradeoffs only — rare
-- **Router-as-Haiku**: for mixed workloads, Haiku 4.5 classifier routes complex queries → Sonnet/Opus (~$0.01 overhead, 50–80% cost reduction on high-volume pipelines)
+### Codex plugin (adversarial cross-provider review)
+Install: `/plugin marketplace add openai/codex-plugin-cc` → `/plugin install codex@openai-codex` → `/reload-plugins` → `/codex:setup`  
+Use: `/codex:adversarial-review` after any sprint | `/codex:rescue` to delegate a full task in background  
+Reuses `~/.codex/` auth — no extra config. Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
 
-### Delegation discipline (hard caps)
-- Prompts: max 300 tokens. Point to file paths + line ranges — never paste content.
-- Agents return summaries ≤200 tokens. Raw output stays inside the agent.
-- Spawn threshold: 3+ independent files, or isolation needed, or parallelism. Not for single-file edits.
-- Batch independent Grep/Read/Glob in one message turn — parallel tool calls share one cache read.
+### Model routing
+- **haiku**: read/search/lint/format/build — 10× cheaper
+- **sonnet**: write/rewrite/review/multi-file refactor
+- **opus**: architecture cross-cutting tradeoffs only
 
-### Dual-agent collaboration (Claude Code + external agent e.g. Codex)
-Split by **layer**, not task. Never assign two agents the same file concurrently.
-
-| Layer | Claude Code | Codex / external |
-|-------|-------------|------------------|
-| Implementation | Write/Edit/Bash | — |
-| Review | — | Diff review, risk flags |
-| Docs/README | — | Prose, diagrams, sprint notes |
-| Validation | Run tests, build | Checklist sign-off |
-| Research | Web search + apply | Deep audit, requirements trace |
-
-**Handoff protocol** — always pass: (1) artifact path + commit hash, (2) what changed and why, (3) what to verify, (4) known risks or open questions. Never handoff "in progress" work — complete your layer before handing over.
-
-**Conflict prevention** — concurrent writes to the same file = sequential only. Use orchestrator pattern: one agent proposes, other reviews, human approves merge. If agents disagree, synthesize both (don't vote) — present merged recommendation with tradeoffs.
-
-**Task assignment** — sequential by layer: architecture → types → implementation → tests → docs. Concurrent by module: agents own separate files/packages with zero overlap. Never split refactor + feature to same agent in parallel.
+### Delegation discipline
+- Prompts: max 300 tokens — file paths + line ranges, never paste content.
+- Agents return summaries ≤200 tokens.
+- Batch independent Grep/Read/Glob in one message turn.
 
 ---
 
@@ -74,11 +76,17 @@ Session: `/compact` at task boundaries | `/compact Focus on API changes` to scop
          `/rename <name>` names sessions like branches | `claude --continue` / `--resume` for multi-day tasks  
          `/effort` sets reasoning depth (low/medium/high) | `/goal <condition>` re-checks after every turn
 
-**Context budget discipline (non-negotiable):** At 30% usage remaining — stop new features, commit all WIP, generate a Codex handoff prompt with: branch, last commit, files changed, commands to validate, next tasks. Hand off cleanly rather than running out mid-implementation.
+**Auto-compact policy (non-negotiable):**
+- **>60% context + post-commit boundary** → compact immediately: `/compact Focus on <project> Sprint <N> — <next task>`
+- **>75% context mid-sprint** → compact now, no exceptions: `/compact Focus on current file changes only`
+- **<60%** → continue; no compact needed
+- Always use scoped compact with focus arg — blind `/compact` loses too much sprint state
+- After compact: verify CLAUDE.md + memory loaded, check `git log --oneline -3` to reorient
+- New session resume: `claude --continue` preserves compacted context; `--resume` picks a prior checkpoint
 
-**Shell run discipline (non-negotiable):** Never leave a shell process running unattended without an explicit timeout or `--limit`. Every Bash command visible to the user must complete in ≤ 10 minutes. Long scraping jobs run in background via PowerShell `Start-Process` and are never awaited in-session. Kill orphaned processes immediately when discovered (`Get-Process -Name node | Stop-Process -Force`). Never chain long runs with `&&` that the user has to watch.
+**Shell run discipline (non-negotiable):** Never leave a shell process running unattended without an explicit timeout or `--limit`. Every Bash command visible to the user must complete in ≤ 10 minutes. Long scraping jobs run in background via PowerShell `Start-Process` and are never awaited in-session. Kill orphaned processes immediately. Never chain long runs with `&&` that the user has to watch.
 
-**Scraping output isolation (non-negotiable):** Every extraction run writes to its own timestamped folder (`output/runs/YYYY-MM-DD-HHMM/`). PDFs go to a shared store (`output/pdfs/`) since their filenames are idempotent. Never reuse an output path across runs. Never add `--fresh-output` to a command that targets a folder with prior data — use a new timestamped folder instead. Parallel workers (one per sector/district) each write to their own file inside the run folder; the orchestrator merges after all workers complete.
+**Scraping output isolation (non-negotiable):** Every extraction run writes to its own timestamped folder (`output/runs/YYYY-MM-DD-HHMM/`). PDFs go to a shared store (`output/pdfs/`) since their filenames are idempotent. Never reuse an output path across runs. Parallel workers each write to their own file inside the run folder; the orchestrator merges after all workers complete.
 
 ---
 
@@ -143,57 +151,6 @@ Flat-layout fix: `[tool.setuptools.packages.find] include = ["app*"]` when `eval
 ## NODE.JS / NESTJS
 NestJS via CLI only (`nest g resource`) — never hand-write boilerplate.  
 MCP tools: `@Tool({ name, description, parameters: z.object({}) })`
-
-**File structure discipline (non-negotiable):**  
-- One responsibility per file. Parser files parse. Mapper files map. Types in `types.ts`. No logic in index files.  
-- Prefer many small focused files over one large file. A 40-line file is better than a 200-line file.  
-- 150 lines = soft alarm. 300 lines = mandatory split. Section comments (`// ── Name ──`) inside a file signal it needs decomposition.  
-- Folder layout mirrors the domain: `src/parser/`, `src/session/`, `src/pdf/`, `src/jsf/`, `src/models/`, `src/utils/`.  
-- Never put inline helpers in the same file as the main function if the helper is >10 lines or reusable.  
-- Type definitions live in `src/types.ts` (public API) and `src/models/` (internal shapes). Never define types inline in implementation files.  
-- Constants in dedicated files (`src/config/constants.ts`) — never magic numbers in business logic.
-
-**Decomposition sprint recipe (when a file exceeds 150 lines):**  
-1. Identify concerns from section comments and distinct import clusters — each cluster becomes a file.  
-2. Spawn one agent per new file (max 3 parallel). Each writes with full TSDoc. One agent runs typecheck; others skip to avoid tsconfig contention.  
-3. Rewrite the orchestrator last — all imports must exist first.  
-4. Run `npm run ci` (typecheck + lint + tests) before committing. Fix, never skip.
-
-**Lifecycle narrative pattern — orchestrators only:**  
-Use `// ── Phase ───────` section comments inside the main function body so execution reads top-to-bottom as a narrative without tracing helper files:
-```typescript
-// ── Setup ─────────────────────────────────────────────────────────────────
-// ── Sector loop ────────────────────────────────────────────────────────────
-// ── Output ────────────────────────────────────────────────────────────────
-// ── Run metrics ────────────────────────────────────────────────────────────
-// ── Reports ────────────────────────────────────────────────────────────────
-```
-Each section is 5–15 lines. Readers navigate by scanning phase names, not by reading every line.  
-Apply only to orchestrator functions (>3 lifecycle phases). Never add section comments to helper files — single-responsibility files don't need them.
-
-**TSDoc standard — every exported function, no exceptions:**
-```typescript
-/**
- * One-line summary shown in VS Code autocomplete (keep ≤ 60 chars).
- *
- * @remarks
- * WHY this exists, edge cases, invariants, protocol quirks.
- * Multi-paragraph OK. Omit only when the first line is fully self-evident.
- *
- * @param name - What it is and any constraints on valid values
- * @returns What comes back, including sentinel values like `null` or `'done'`
- * @throws {ErrorType} When and why this error is thrown
- *
- * @example
- * ```typescript
- * const result = myFn(arg); // rendered as highlighted code in hover card
- * ```
- */
-```
-Rules: `@param name - desc` with dash separator, never `{type}` (TypeScript has the types).  
-`@remarks` = the WHY block; omit only if the summary is fully self-sufficient.  
-`@example` only when the call site is non-obvious.  
-Internal non-exported helpers: one-line `/** summary */` is enough — no need for full block.
 
 ---
 

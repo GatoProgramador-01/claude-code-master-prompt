@@ -4,7 +4,7 @@
 
 [![Maintained](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)]() [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![Node](https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/) [![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/) [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat-square&logo=terraform&logoColor=white)](https://www.terraform.io/) [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-**A production-grade Claude Code system prompt — modular, lazy-loaded, and token-efficient — that enforces parallel agents, TDD, Docker-first dev, LLMOps standards, and web scraping expertise on every session.**
+**A production Claude Code operating prompt — the CLAUDE.md master configuration used across real projects. Enforces parallel agents, a Group of Experts system, TDD, Docker-first dev, and cost-aware model routing on every session.**
 
 [View CLAUDE.md](CLAUDE.md) | [Author](https://github.com/GatoProgramador-01)
 
@@ -12,68 +12,60 @@
 
 ---
 
-## The Problem
+## What This Is
 
-Every AI coding assistant starts a session the same way: competent, eager, and completely unaware of your team's standards. Ask it to add an endpoint, and it will write the handler first, the test second — or skip the test entirely. Ask it to update a GitHub Actions workflow, and it will assume the branch is `main` without checking, breaking your trigger on the first push. Ask it to write Terraform, and it will sprinkle commas between attribute assignments as if HCL were JSON, generating config that fails on `terraform validate` before a single resource has been created.
+This repository contains the `CLAUDE.md` file that acts as a persistent system prompt for every Claude Code session. Place it in your home directory (`~/CLAUDE.md`) and Claude Code loads it automatically — turning every session into one that behaves like a senior tech lead with a full supporting team.
 
-The failures compound. A new package gets imported in application code but never added to `pyproject.toml`. The unit tests pass because they run in the native environment where the package was installed globally. The Docker container crashes at startup with a `ModuleNotFoundError`. The deploy breaks at 11pm. A LangChain agent gets wired up using `LLMChain` — a pattern deprecated two major versions ago — because the model's training data skews toward the most-cited examples, not the current API. A Pydantic model parses LLM output by calling `json.loads` directly on the response, and works perfectly until production traffic sends a response with a curly quote where a straight quote was expected, raising a `JSONDecodeError` that no unit test ever triggered.
+The file is the product of real production failures across multiple projects: tests that passed locally and crashed Docker, Terraform configs that failed `validate` before a single resource was created, LangGraph agents that broke on 3% of production traffic. Every rule in it was written in response to a specific, documented mistake.
 
-None of these are exotic edge cases. They are the default behavior of an AI assistant operating without constraints. They are also the exact class of failures that a senior engineer would catch before the code was written — not after it crashed.
-
-Can a single system prompt enforce the discipline of a senior tech lead across every session?
+The current version introduces the **Group of Experts** system: 14 specialized agents, each with a defined domain and model tier, replacing the older single-agent-plus-utilities pattern.
 
 ---
 
-## How It Works — The Story Arc
+## Key Features
 
-### Act 1 — From Sequential Thinking to Parallel Execution
-
-The most expensive default behavior of any AI assistant is sequential reasoning where none is required. "First I'll update the README, then I'll write the Terraform, then I'll update the CLAUDE.md" — three independent files, three sequential operations, three times the latency. The parallel agents section of this prompt makes that pattern a violation, not a style preference.
-
-The rule is stated without softening: maximum five agents simultaneously, this is the default, not an optimization. The prompt goes further and defines the failure modes explicitly — if you wrote "first I'll do X, then Y" for tasks whose outputs don't depend on each other, you under-parallelized. It also covers the infrastructure needed to make parallelism safe: worktrees give each agent an isolated git checkout so parallel file edits never collide. The `.worktreeinclude` file auto-copies `.env` into each checkout so Docker picks it up correctly.
-
-By the time a session starts, Claude has already internalized the rule: independent tasks fan out, dependent tasks chain, and the right measure of agent selection is not model capability but task type — Haiku for read-only research, Sonnet for implementation, Opus only when Sonnet produces shallow architectural analysis.
-
-### Act 2 — Engineering Constraints, Not Prompt Engineering
-
-The second insight this prompt encodes is that enforcement scales through tooling, not instructions. An instruction to "always run the type checker before finishing" competes with every other instruction in context. A pre-commit hook that blocks the commit when the Docker build fails is physically unbypassable.
-
-The code modification discipline section captures the operational procedure that prevents entire classes of bugs: collect diagnostics before touching anything, locate every reference to a symbol before renaming it, read the config files before writing code that must conform to them. The validation order after every implementation is not a suggestion — type checker, linter, formatter, unit tests, integration tests, in that sequence, with the explicit instruction to fix failures before explaining them.
-
-The pre-commit Docker build gate operationalizes the most common class of deploy-time breakage. When `pyproject.toml` or a `Dockerfile` changes, the commit is blocked until `docker compose build` succeeds. The failure it prevents is specific and documented: a package added to source code but not to the manifest, passing all unit tests because they run in the native environment, crashing the container at startup.
-
-### Act 3 — LLMOps as First-Class Engineering
-
-The third layer is what separates an AI-assisted codebase from a production LLMOps system. Token efficiency is not about saving money — it is about making the right tool call. A Sonnet parent spawning five Haiku workers for file search and grep operations saves 80% on research tasks. An Opus parent spawning workers that inherit the parent model is catastrophically expensive. The model routing table in this prompt is a hard rule: task type maps to model tier, no exceptions, `inherit` is never used.
-
-The LangChain and LangGraph section encodes what every production pipeline eventually discovers. `LLMChain` is deprecated; use LCEL. Raw text parsing breaks on curly quotes; use `.with_structured_output(PydanticModel)`. Blocking `.invoke` in a FastAPI handler deadlocks under load; use `.ainvoke`. The unicode-normalizer validator is present in every Pydantic model that receives LLM-generated list or dict fields — not because it was clever to add, but because its absence caused a production crash on a response nobody tested.
-
-### Act 4 — When the Prompt Becomes the Problem
-
-The prompt that solved the sequential-thinking problem had grown to solve forty others. By the time it enforced LangGraph patterns, CI/CD gotchas, ASP.NET viewstate handling, AWS SSO setup, and a sixteen-section README template, it was 1,300 lines long — loading every turn, for every session, regardless of what was being built. A session spent fixing a React component paid the token cost of the full Terraform HCL guide and the Motor event-loop fix. The tool meant to save tokens had become the largest single token expense in every conversation.
-
-The fix is the same engineering principle applied to the prompt itself: only load what you need. Core behavioral rules stay in `CLAUDE.md` — now 120 lines — while domain-specific knowledge lives in `.claude/rules/<domain>/<topic>.md` files with `paths:` frontmatter that loads them only when a matching file is touched. A session that never opens a `.tf` file never pays for the Terraform guide. A session that never touches `**/agents/**` never loads the LangChain production rules. Five domain rule files covering Terraform, AWS, CI/CD, LangChain, and Python testing now load conditionally — zero cost when out of scope.
-
-The same session introduces two specialist agents: `validate` (haiku, 8 turns) runs the full type/lint/format/test gate before every commit at minimal cost; `scraper` (sonnet, 20 turns) is a production web scraping specialist covering httpx + playwright (Python), puppeteer-extra-plugin-stealth (Node.js), ASP.NET viewstate extraction, retry with tenacity, mandatory sanity checks, and operational continuity rules. A PostToolUse compression hook reduces verbose build logs from 10,000 lines to 200 ERROR/WARN lines before Claude reads them — applying the same "engineering constraint" principle to the I/O layer itself.
+- **Parallel agents by default** — minimum 3 agents per task, default target 5, max 8 simultaneous. Single-agent responses are the exception, not the default.
+- **Group of Experts** — 14 named agents covering every layer of a fullstack + DevOps stack, each with a dedicated `.md` file and model assignment.
+- **TDD non-negotiable** — Red → Green → Refactor. Tests written before implementation on every task. Bug fixes start with a failing test.
+- **Docker-first** — `docker compose up --build` is the only acceptable way to start services. A pre-commit hook blocks dependency changes until the Docker build passes.
+- **Cost routing** — Haiku for read/search/lint (10x cheaper), Sonnet for write/review/refactor, Opus only for cross-cutting architecture tradeoffs.
+- **Hooks system** — PostToolUse auto-formats Python and TypeScript, compresses verbose build logs to 200 lines before Claude reads them, blocks force-pushes at the PreToolUse level.
+- **Auto-compact policy** — context budget rules that trigger `/compact` with a focused scope string at defined thresholds, preventing silent context loss mid-sprint.
+- **Lazy-loaded domain rules** — Terraform, AWS, CI/CD, LangChain, and Python testing rules live in `.claude/rules/` and load only when matching files are touched. Zero per-turn cost when out of scope.
 
 ---
 
-## Key Sections
+## The Group of Experts
 
-| Section | What It Enforces |
-|---------|-----------------|
-| PARALLEL AGENTS | Maximum 5 concurrent agents; `isolation: worktree` for parallel file edits; Haiku for research, Sonnet for implementation; Router-as-Haiku for mixed workloads (50–80% cost reduction); delegation prompts capped at 300 tokens |
-| MODULAR RULES | 120-line core `CLAUDE.md`; domain rules in `.claude/rules/<domain>/` with `paths:` frontmatter load only when matching files touched — zero per-turn cost otherwise |
-| WEB SCRAPING | `scraper` agent (sonnet, 20 turns): httpx + playwright (Python), puppeteer-extra-stealth (Node.js), ASP.NET viewstate pattern, retry + sanity checks + `--dry-run` flag for every delivery |
-| HOOKS | `PreToolUse` blocks force push; `PostToolUse` auto-formats Python + compresses build logs to 200 ERROR/WARN lines; `Notification` fires Windows desktop alert; `/rewind` restores context after `/clear` |
-| TOKEN EFFICIENCY | Model-per-role table; `maxTurns` hard caps (5 explore / 8 leaf / 12–20 implementation); never use `inherit`; prompt cache batching; CLAUDE.md 200-line target |
-| CODE MODIFICATION DISCIPLINE | Collect diagnostics before touching code; locate all references before renaming; read config before writing conforming code; validate in sequence (type → lint → format → unit → E2E) |
-| LOCAL DEVELOPMENT | `docker compose up --build` is the default; pre-commit Docker build gate blocks dependency/Dockerfile changes until build passes |
-| TDD | Red → Green → Refactor is non-negotiable; tests written before implementation; bug fixes require a failing test first |
-| CI/CD PIPELINE | 5-job GitHub Actions structure; `npm install` not `npm ci`; `ruff select` in `[tool.ruff.lint]`; Motor singleton reset in E2E conftest; branch name verified before writing workflows |
-| LANGCHAIN/LANGGRAPH | No legacy chains; `.with_structured_output(PydanticModel)`; unicode-normalizer fallback in every str→list validator; `get_llm(role)` factory; 3-layer eval with CI gate |
-| AWS MULTI-AGENT | 3-layer model (Step Functions → Bedrock AgentCore → MCP/Lambda); Lambda idempotent + stateless + DLQ + X-Ray; OIDC trust in CI |
-| README STANDARD | 16-section portfolio-grade structure; prose-only Problem and Act sections; two Mermaid diagrams; skills table maps each technique to a file path |
+14 agents, each with a defined model tier and domain. The Architect routes work to the appropriate experts; the Adversarial agent attacks every design before the Drafter writes a line of code.
+
+| Agent | Model | Domain |
+|-------|-------|--------|
+| **Architect** | sonnet | Orchestrates the team, decomposes tasks, routes to experts — never codes |
+| **frontend-expert** | sonnet | React/Next.js/TS, SSE UI, Zustand, React Query, Jest + RTL |
+| **backend-expert** | sonnet | FastAPI/NestJS, Motor DB, Pydantic v2, rate limiting |
+| **llmops-expert** | sonnet | LangGraph nodes, structured output, evals, observability |
+| **devops-expert** | sonnet | Docker, GitHub Actions, Terraform, Railway/Vercel |
+| **researcher** | sonnet | Web research, source verification, grounding facts before pipeline runs |
+| **Adversarial** | sonnet | Attacks every design — runs after Architect, before Drafter |
+| **Drafter** | haiku | TDD: RED tests first, then implementation |
+| **Integrator** | sonnet | Wires orchestrator.py, resolves import conflicts, commits |
+| **Analyst** | haiku | Reads logs/DB/tests — no code writing |
+| **Validate** | haiku | type/lint/format/test gate before every commit |
+| **code-reviewer** | sonnet | Security, cost safety, production-readiness |
+| **scraper** | sonnet | HTTP/browser scrapers, anti-bot, ASP.NET/JSF viewstate |
+| **jsdoc** | sonnet | Full TSDoc on every exported TypeScript function |
+
+### Standard workflow teams
+
+| Scenario | Team |
+|----------|------|
+| New pipeline feature | Analyst + Architect (parallel) → Adversarial → llmops-expert + Drafter (parallel) → Validate → Integrator |
+| New API endpoint | Architect → backend-expert + Adversarial (parallel) → Validate → commit |
+| Frontend feature | frontend-expert + Adversarial (parallel) → Validate → jsdoc → commit |
+| Deploy / infra change | devops-expert → Adversarial → Validate → commit |
+| Full-stack feature | frontend-expert + backend-expert + Adversarial (all parallel) → Validate → Integrator |
+| Debug failing test | Analyst → Adversarial (blind hypothesis) → Validate fix |
 
 ---
 
@@ -91,73 +83,104 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/GatoProgramador-01/cla
   -OutFile "$HOME\CLAUDE.md"
 ```
 
-**Install the full modular system (recommended):**
+**Install the full agent system (recommended):**
 
 ```bash
-# Clone and copy the full .claude/ structure to your home directory
+# Clone and copy the full .claude/agents/ directory to your home
 git clone https://github.com/GatoProgramador-01/claude-code-master-prompt.git
 cp -r claude-code-master-prompt/.claude/agents ~/.claude/
 cp -r claude-code-master-prompt/.claude/rules ~/.claude/
 ```
 
-**Project-specific install — only affects this repository:**
+Each agent in `~/.claude/agents/` is a markdown file that Claude Code loads when you invoke the agent by name. The model tier is set in the frontmatter of each file.
+
+**Project-specific overrides:**
 
 ```bash
-# Copy to project root (highest priority, overrides global)
-curl -o ./.claude/CLAUDE.md \
-  https://raw.githubusercontent.com/GatoProgramador-01/claude-code-master-prompt/main/CLAUDE.md
-```
-
-**Reference from a project CLAUDE.md (compose with project-specific rules):**
-
-```markdown
-<!-- .claude/CLAUDE.md in your project -->
-@~/.claude/CLAUDE.md
+# Create a project CLAUDE.md that extends the global one
+cat > ./CLAUDE.md << 'EOF'
+@~/CLAUDE.md
 
 ## PROJECT-SPECIFIC OVERRIDES
-- Service name prefix: `myproject-`
-- Default AWS region: `us-west-2`
+- Service name prefix: myproject-
+- Default AWS region: us-east-1
+- Database: PostgreSQL (not MongoDB)
+EOF
 ```
 
-Claude Code loads configuration in this priority order:
+**Full directory layout after install:**
 
 ```
 ~/.claude/
-├── CLAUDE.md                      ← global rules (120 lines, every session)
+├── CLAUDE.md                      # global rules (~200 lines, every session)
 ├── agents/
-│   ├── validate.md                ← haiku, 8 turns — pre-commit validator
-│   └── scraper.md                 ← sonnet, 20 turns — web scraping specialist
-└── rules/                         ← lazy-loaded, zero cost when not in scope
+│   ├── architect.md               # sonnet — task decomposition, routes experts
+│   ├── frontend-expert.md         # sonnet — React/Next.js specialist
+│   ├── backend-expert.md          # sonnet — FastAPI/NestJS specialist
+│   ├── llmops-expert.md           # sonnet — LangGraph + evals specialist
+│   ├── devops-expert.md           # sonnet — Docker/Terraform/CI specialist
+│   ├── researcher.md              # sonnet — web research + grounding
+│   ├── adversarial.md             # sonnet — attacks design before drafter codes
+│   ├── drafter.md                 # haiku  — TDD RED first, then implements
+│   ├── integrator.md              # sonnet — wires orchestrator, commits
+│   ├── analyst.md                 # haiku  — read-only diagnostics
+│   ├── validate.md                # haiku  — pre-commit type/lint/test gate
+│   ├── scraper.md                 # sonnet — HTTP/browser scraping specialist
+│   └── jsdoc.md                   # sonnet — TSDoc on TS exports
+└── rules/                         # lazy-loaded, zero cost when not in scope
     ├── infra/
-    │   ├── terraform.md           ← loads on *.tf / infra/**
-    │   └── aws.md                 ← loads on infra/** / services/**
+    │   ├── terraform.md           # loads on *.tf / infra/**
+    │   └── aws.md                 # loads on infra/** / services/**
     ├── cicd/
-    │   └── pipeline.md            ← loads on .github/**
+    │   └── pipeline.md            # loads on .github/**
     └── python/
-        ├── langchain.md           ← loads on **/agents/** / **/prompts/**
-        └── testing.md             ← loads on **/tests/** / **/conftest.py
-
-project/
-└── .claude/
-    └── CLAUDE.md                  ← project-specific overrides (highest priority)
+        ├── langchain.md           # loads on **/agents/** / **/prompts/**
+        └── testing.md             # loads on **/tests/** / **/conftest.py
 ```
 
 ---
 
-## Rules That Come From Real Failures
+## Stack Coverage
+
+| Layer | Technologies |
+|-------|-------------|
+| Frontend | React, Next.js, TypeScript, Zustand, React Query, Jest + RTL, Playwright |
+| Backend | Python/FastAPI, Node.js/NestJS, Motor (async MongoDB), Pydantic v2 |
+| AI/LLMOps | LangChain, LangGraph, structured output, deepeval/RAGAS evals, LangSmith tracing |
+| Infrastructure | AWS (Lambda, Step Functions, Bedrock), Terraform, Docker, GitHub Actions |
+| Deploy targets | Railway, Vercel, AWS ECS/Lambda |
+| Databases | MongoDB (Motor), PostgreSQL |
+
+---
+
+## What It Prevents
+
+These are rules derived from specific production failures, not general best practices.
 
 | Rule | The Failure That Caused It |
 |------|--------------------------|
-| Pre-commit Docker build gate blocks commits when `pyproject.toml` or `Dockerfile` changes | A package added to source code but not to `pyproject.toml` passed all unit tests (native environment had it installed globally) and crashed the Docker container at deploy time with `ModuleNotFoundError` |
-| Always spawn 5 parallel agents for independent tasks; never sequential | Three independent file updates ran sequentially, burning 40+ minutes of wall time on work that could have completed in 12. The lost time compounds across every session |
-| `npm install` not `npm ci`; Node.js version must be 24 | `npm ci` on a Windows-generated lockfile failed in Linux CI with `Missing: @emnapi/runtime from lock file` — the lockfile omits Linux WASM fallback packages. The error message gives no hint that the lockfile is the root cause |
-| Motor singleton must be reset with synchronous PyMongo in E2E conftest | pytest-asyncio creates a new event loop per test. Motor binds to the loop at connection time. Every E2E test after the first raised `Event loop is closed`. The fix is synchronous PyMongo for cleanup and `_client = None` to force Motor to re-bind |
-| `ruff select` must live in `[tool.ruff.lint]`, not `[tool.ruff]` | ruff >= 0.8 silently ignores `select` under `[tool.ruff]`. The linter appeared to run but enforced nothing. No error, no warning — the rule was simply ignored |
-| Unicode-normalizer fallback in every Pydantic str→list validator | A LangGraph agent returned JSON with curly quotes. `json.loads` raised `JSONDecodeError`. The agent worked in every unit test and failed on 3% of production traffic — exactly the case that passes QA |
-| Always run `git branch --show-current` before writing any GitHub Actions `branches:` trigger | A workflow written with `branches: [main]` was committed to a repo whose default branch was `master`. The CI job never fired. The bug was invisible because the trigger silently matched nothing |
-| `black target-version` must match the CI Python version exactly | `target-version = ["py310"]` with `python-version: "3.11"` caused `black --check` to pass locally and fail in CI. The formatter applies different line-wrapping decisions based on target version |
-| CLAUDE.md must stay under 200 lines with domain rules moved to lazy-loaded files | The CLAUDE.md grew to 1,300 lines, loading in full every session turn regardless of the task. A React component fix paid the token cost of the full Terraform guide and the Motor event-loop fix |
-| PostToolUse hook on Bash must compress verbose build output before Claude reads it | A failing CI job dumped 8,000 lines of Maven build log into context. Claude spent the entire context budget on log parsing instead of fixing the root cause |
+| Pre-commit Docker build gate blocks commits when `pyproject.toml` or `Dockerfile` changes | A package added to source code but not to `pyproject.toml` passed all unit tests (native environment had it globally) and crashed Docker at deploy time with `ModuleNotFoundError` |
+| Minimum 5 parallel agents for independent tasks | Three independent file updates ran sequentially, burning 40+ minutes of wall time on work that could have completed in 12 |
+| `npm install` not `npm ci`; Node.js 24 required | `npm ci` on a Windows-generated lockfile failed in Linux CI with `Missing: @emnapi/runtime from lock file` — no hint in the error that the lockfile is the root cause |
+| Motor singleton must be reset with synchronous PyMongo in E2E conftest | pytest-asyncio creates a new event loop per test; Motor binds at connection time; every E2E test after the first raised `Event loop is closed` |
+| Unicode-normalizer fallback in every Pydantic str→list validator | A LangGraph agent returned JSON with curly quotes; `json.loads` raised `JSONDecodeError`; worked in every unit test, failed on 3% of production traffic |
+| `git branch --show-current` before writing any `branches:` trigger | A workflow written with `branches: [main]` was committed to a repo whose default branch was `master`; the CI job never fired |
+| `ruff select` must live in `[tool.ruff.lint]`, not `[tool.ruff]` | ruff >= 0.8 silently ignores `select` under `[tool.ruff]`; the linter appeared to run but enforced nothing |
+| CLAUDE.md must stay under 200 lines with domain rules lazy-loaded | The CLAUDE.md grew to 1,300 lines, loading every turn regardless of the task; a React component fix paid the full token cost of the Terraform HCL guide |
+| PostToolUse hook on Bash compresses verbose build output before Claude reads it | A failing CI job dumped 8,000 lines of Maven build log into context; Claude spent the entire context budget on log parsing instead of fixing the root cause |
+| Adversarial agent runs before Drafter writes code | A LangGraph node returned structured output without validating the schema against actual LLM behavior; the Adversarial agent would have caught the missing fallback validator before any code was written |
+
+---
+
+## The Auto-Compact Policy
+
+Context budget management is explicit and rule-driven, not left to judgment:
+
+- **Over 60% context used at a post-commit boundary** → compact immediately with a focused scope: `/compact Focus on <project> Sprint <N> — <next task>`
+- **Over 75% context mid-sprint** → compact now, no exceptions: `/compact Focus on current file changes only`
+- **Under 60%** → continue; no compact needed
+
+Always use a scoped compact with a focus argument. A blind `/compact` discards too much sprint state. After compacting, verify CLAUDE.md and memory are loaded, then run `git log --oneline -3` to reorient.
 
 ---
 
@@ -180,7 +203,13 @@ project/
 | Hooks system | `PreToolUse` force-push block; `PostToolUse` auto-formatter; `Notification` Windows idle alert; `Stop` post-turn test execution |
 | AWS SSO + serverless | Day-1 SSO guide; 3-layer multi-agent model; Lambda single-responsibility + DLQ + X-Ray; HTTP API over REST API |
 | README standard | 16-section portfolio-grade template; prose-only Problem + Act sections; two Mermaid diagrams; sprint history in `<details>` |
-| Modular rules + scraper specialist | CLAUDE.md reduced from 1,300 → 120 lines (80%); 5 domain rule files with `paths:` lazy-loading; `validate` agent (haiku/8 turns) + `scraper` agent (sonnet/20 turns) for web scraping; PostToolUse build-log compression hook; `/rewind` and Router-as-Haiku documented |
+| Modular rules + scraper specialist | CLAUDE.md reduced from 1,300 → 120 lines (80%); 5 domain rule files with `paths:` lazy-loading; `validate` agent (haiku/8 turns) + `scraper` agent (sonnet/20 turns); PostToolUse build-log compression hook |
+| Web researcher hardening | Tavily `_run_search` 5-query fan-out with `search_depth="advanced"`; module-level `TavilyClient` import guard; URL normalization + dedup; `SOURCE URLS` block injected into brief |
+| Sources + citations auto-append | Deterministic `## Sources` section auto-appended in `content_generation_node`; `post_processor.py` merges duplicate Sources sections and deduplicates by URL |
+| Revision analytics | `quality_snapshots` MongoDB collection; `/api/analytics/revision-cycles` endpoint; `RevisionCyclesPanel` frontend table with score/word-count color-coding |
+| Adversarial agent framework | Dedicated `adversarial.md` agent attacks every design before drafter codes; `architect.md` decomposes; minimum 3 agents per task enforced |
+| Medium 2026 + Codex plugin | Boost Nomination Program; publication-first strategy; Codex CLI plugin (`openai/codex-plugin-cc`) — `/codex:adversarial-review`, `/codex:rescue` |
+| Group of Experts system | 14 specialized agents (frontend-expert, backend-expert, llmops-expert, devops-expert, researcher, code-reviewer added); auto-compact policy with context thresholds; scoped `/compact` rules |
 
 </details>
 
