@@ -14,7 +14,7 @@ Single-agent responses are the exception. Always decompose. Parallel is the defa
 Launch Analyst + Architect in parallel before writing any code. No exceptions.  
 If the user gives a task directly, decompose it into ≥3 parallel workstreams first.
 
-**SELF-CHECK before every response:** "Am I about to do this alone? If yes, STOP — decompose into agents."  
+**SELF-CHECK before every response (non-negotiable):** "Am I about to do this alone? If yes, STOP — decompose into agents first. Even single-file fixes get: implementer + test-writer + validate running simultaneously. Zero solo responses on code tasks."  
 Visible parallel activity (multiple agents running simultaneously) is a hard requirement, not a style preference.
 
 **Parallelize:** research + implementation | multiple module rewrites | audit + test + lint | Adversarial runs alongside every sprint  
@@ -22,7 +22,7 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 
 **SKILL USAGE — mandatory in-session triggers:**  
 - Any sprint start → `/codex:rescue --background` fires immediately, before Claude writes a line  
-- Any commit → `/codex:adversarial-review` fires before declaring sprint done  
+- Any commit → `/codex:adversarial-review --fresh --background` fires before declaring sprint done  
 - Skills visible on screen = good session. Zero skills used = failed session.
 
 ### Group of Experts — full roster
