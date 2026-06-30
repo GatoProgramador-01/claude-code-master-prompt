@@ -184,6 +184,60 @@ Always use a scoped compact with a focus argument. A blind `/compact` discards t
 
 ---
 
+## Codex Adversarial Review
+
+The Codex CLI plugin (`openai/codex-plugin-cc`) runs a second model family against every sprint — catching blind spots that same-model review misses. Install once, then follow the mandatory cadence on every sprint.
+
+**Install:**
+
+```bash
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+/codex:setup
+```
+
+**Mandatory cadence (non-negotiable):**
+
+- Sprint start: `/codex:rescue --background` fires before writing a line of code
+- After every commit: `/codex:adversarial-review --fresh --background`
+- When stuck >5 min: delegate immediately to `/codex:rescue`
+- Sprint 31+: Codex implements ONE node per sprint (not just reviews)
+
+Always use `--background` — never block the session waiting for Codex. Claude and Codex work in parallel; the session does not pause.
+
+---
+
+## Sprint Status UI
+
+Every sprint prints a live status tree — before agents launch (showing the plan) and rebuilt after each completion wave (showing progress). It is the single visual that makes parallel agent work scannable.
+
+**Format:**
+
+```
+😸 Sprint N — activo [3/6 completados]
+├── ✅ copy_editor_node.py  [████████] done    — score cap: penalties>0.30
+├── ✅ test_sme_reviewer    [████████] done    — 15 RED→GREEN tests
+├── 🔄 sme_reviewer_node   [░░░░░░░░] running — implement SME check
+├── 🔄 integrator          [░░░░░░░░] running — wire sme_review_check
+├── 🔄 validate            [░░░░░░░░] queued  — full test suite gate
+└── 🔍 Codex              [░░░░░░░░] running — adversarial Sprint 31
+```
+
+**Rules:**
+
+- `😸` header only — ONE per tree, never in rows
+- `[████████]` done ✅ · `[░░░░░░░░]` running or queued 🔄 · `[████████]` failed ❌
+- `[N/M completados]` counter updates after each completion wave
+- Codex always gets the bottom `🔍` row — makes cross-provider review a first-class citizen
+- Row description ≤ 40 chars, columns right-padded for alignment
+- Print tree BEFORE launching agents (it's the sprint plan) AND rebuild after each wave
+
+**Why it works:**
+Binary bars give the one metric that matters — running vs finished — without reading descriptions. The `[N/M]` counter shows sprint velocity at a glance. Printing the tree before any agent fires forces decomposition before execution.
+
+---
+
 <details>
 <summary><strong>Sprint History</strong></summary>
 
