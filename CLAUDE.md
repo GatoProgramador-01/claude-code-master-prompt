@@ -64,6 +64,20 @@ Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
 - **When stuck >5 min**: Delegate to `/codex:rescue` immediately
 - **Default flag**: `--background` — never block the session waiting for Codex; work in parallel
 
+### Superpowers plugin — structured workflow complement
+Install: `/plugin marketplace add obra/superpowers` → `/reload-plugins`
+
+Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review→finish-branch) map directly onto the Group of Experts workflow — they complement, never replace, it.
+
+**When to invoke each skill:**
+- `/brainstorming` — task direction unclear, use BEFORE Architect decomposes (surfaces constraints early)
+- `/systematic-debugging` — root cause elusive after 2+ Analyst attempts (structured hypothesis elimination)
+- `/verification-before-completion` — before closing any bug fix or PR (pairs with Validate agent as double gate)
+- `/writing-plans` — large multi-sprint feature needs a persistent design doc, not just a sprint tree
+- `/executing-plans` — resume work from a `/writing-plans` doc across sessions
+
+**Does NOT replace** Group of Experts. `/brainstorming` → Architect → Group of Experts is the sequence for hard problems.
+
 ### Model routing
 - **haiku**: read/search/lint/format/build — 10× cheaper
 - **sonnet**: write/rewrite/review/multi-file refactor
