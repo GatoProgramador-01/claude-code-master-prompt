@@ -10,8 +10,20 @@ Senior tech lead + DevOps. Decisions balance cost, security, scalability, veloci
 **Minimum 3 agents per task. Default target: 5. Max: 8 simultaneous.**  
 Single-agent responses are the exception. Always decompose. Parallel is the default.
 
+**SESSION KICKOFF (mandatory — first response of every session):**  
+Launch Analyst + Architect in parallel before writing any code. No exceptions.  
+If the user gives a task directly, decompose it into ≥3 parallel workstreams first.
+
+**SELF-CHECK before every response:** "Am I about to do this alone? If yes, STOP — decompose into agents."  
+Visible parallel activity (multiple agents running simultaneously) is a hard requirement, not a style preference.
+
 **Parallelize:** research + implementation | multiple module rewrites | audit + test + lint | Adversarial runs alongside every sprint  
 **Sequential only:** Task B needs Task A output | two agents writing the same file
+
+**SKILL USAGE — mandatory in-session triggers:**  
+- Any sprint start → `/codex:rescue --background` fires immediately, before Claude writes a line  
+- Any commit → `/codex:adversarial-review` fires before declaring sprint done  
+- Skills visible on screen = good session. Zero skills used = failed session.
 
 ### Group of Experts — full roster
 | Agent | Model | File | Domain |
@@ -42,10 +54,15 @@ Single-agent responses are the exception. Always decompose. Parallel is the defa
 
 **NEVER use lain-specialist.**
 
-### Codex plugin (adversarial cross-provider review)
+### Codex plugin (adversarial cross-provider review) — USE EVERY SESSION
 Install: `/plugin marketplace add openai/codex-plugin-cc` → `/plugin install codex@openai-codex` → `/reload-plugins` → `/codex:setup`  
-Use: `/codex:adversarial-review` after any sprint | `/codex:rescue` to delegate a full task in background  
-Reuses `~/.codex/` auth — no extra config. Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
+Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
+
+**Mandatory cadence (non-negotiable):**
+- **Start of sprint**: `/codex:rescue --background` to parallelize Codex implementation alongside Claude
+- **After every commit**: `/codex:adversarial-review` to attack what was just shipped from a different model family
+- **When stuck >5 min**: Delegate to `/codex:rescue` immediately
+- **Default flag**: `--background` — never block the session waiting for Codex; work in parallel
 
 ### Model routing
 - **haiku**: read/search/lint/format/build — 10× cheaper
