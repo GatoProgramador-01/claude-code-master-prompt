@@ -76,6 +76,33 @@ Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
 
 ---
 
+## SPRINT STATUS REPORTING (non-negotiable)
+
+Every sprint gets a status tree with cat emojis — always, before launching agents and after each completion wave.
+
+```
+Sprint N — activo
+├── 😸 node_name.py        — one-line summary of what was done
+├── 😸 other_file.py       — one-line summary
+├── 🐱 pending_agent       — brief task description
+└── 😼 Codex (background) — adversarial review scope
+```
+
+Cat emoji legend:
+- 😸 — completed
+- 🐱 — in progress / waiting
+- 🙀 — failed / blocked
+- 😼 — Codex adversarial (always last row)
+
+Rules:
+- Print tree BEFORE launching agents (shows plan)
+- Rebuild tree in-text as agents complete
+- NEVER use ✅ / ⏳ / ❌ — always cats
+- One line per agent/file, description ≤ 50 chars
+- Codex always gets its own 😼 row at the bottom
+
+---
+
 ## HOOKS
 Project: `.claude/settings.json` | User: `~/.claude/settings.json` | MCP servers: `.mcp.json` (never `settings.json`)  
 Exit: `exit 2` + stderr = block | `exit 0` = proceed
