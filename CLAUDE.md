@@ -65,18 +65,21 @@ Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
 - **Default flag**: `--background` — never block the session waiting for Codex; work in parallel
 
 ### Superpowers plugin — structured workflow complement
-Install: `/plugin marketplace add obra/superpowers` → `/reload-plugins`
+Install: `/plugin marketplace add obra/superpowers` → `/plugin install superpowers@superpowers-dev` → `/reload-plugins`
 
 Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review→finish-branch) map directly onto the Group of Experts workflow — they complement, never replace, it.
 
-**When to invoke each skill:**
-- `/brainstorming` — task direction unclear, use BEFORE Architect decomposes (surfaces constraints early)
-- `/systematic-debugging` — root cause elusive after 2+ Analyst attempts (structured hypothesis elimination)
-- `/verification-before-completion` — before closing any bug fix or PR (pairs with Validate agent as double gate)
-- `/writing-plans` — large multi-sprint feature needs a persistent design doc, not just a sprint tree
-- `/executing-plans` — resume work from a `/writing-plans` doc across sessions
+**Claude invokes these automatically — user never types them:**
+- `superpowers:brainstorming` — any new feature/build task, BEFORE Architect decomposes
+- `superpowers:systematic-debugging` — any bug/test failure, BEFORE proposing fixes
+- `superpowers:writing-plans` — multi-sprint feature with a spec, BEFORE touching code
+- `superpowers:executing-plans` — resuming from a written plan across sessions
+- `superpowers:test-driven-development` — BEFORE writing implementation code
+- `superpowers:verification-before-completion` — BEFORE claiming any work is done or committing
+- `superpowers:dispatching-parallel-agents` — when 2+ independent tasks exist
+- `superpowers:requesting-code-review` — after completing major feature, before merging
 
-**Does NOT replace** Group of Experts. `/brainstorming` → Architect → Group of Experts is the sequence for hard problems.
+**Does NOT replace** Group of Experts. Superpowers sets the process phase; Group of Experts executes it.
 
 ### Model routing
 - **haiku**: read/search/lint/format/build — 10× cheaper
