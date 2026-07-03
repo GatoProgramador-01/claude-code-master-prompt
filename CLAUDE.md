@@ -75,10 +75,16 @@ Install: `/plugin marketplace add openai/codex-plugin-cc` → `/plugin install c
 Auth confirmed active (jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3).
 
 **Mandatory cadence (non-negotiable):**
-- **Start of sprint**: `/codex:rescue --background` to parallelize Codex implementation alongside Claude
-- **After every commit**: `/codex:adversarial-review` to attack what was just shipped from a different model family
-- **When stuck >5 min**: Delegate to `/codex:rescue` immediately
+- **Start of sprint**: `/codex:rescue --background` fires immediately — before Claude writes a single line of code
+- **After every commit**: `/codex:adversarial-review --fresh --background` — no sprint is declared done without this
+- **When stuck >5 min**: Delegate to `/codex:rescue` immediately, do not keep trying alone
 - **Default flag**: `--background` — never block the session waiting for Codex; work in parallel
+- **Self-check**: "Did I run Codex this sprint?" — if no, the sprint is incomplete. Zero Codex = failed session.
+
+**FAILURE MODES to avoid:**
+- Declaring a sprint done without `/codex:adversarial-review` → silent regressions shipped
+- Fixing bugs alone for >5 min without `/codex:rescue` → wasted context on a solvable problem
+- Running Codex at the very end only → Codex found nothing useful because all decisions were already locked
 
 ### Superpowers plugin — structured workflow complement
 Install: `/plugin marketplace add obra/superpowers` → `/plugin install superpowers@superpowers-dev` → `/reload-plugins`
