@@ -1,15 +1,17 @@
 ---
 name: session-autopilot
-description: "Auto-triggers at ~90% context usage. Runs parallel agents to audit the session, identify avoidable errors, analyze token usage, and write a structured log to MongoDB session_logs. Invoke when the user mentions context usage, 90%, high usage, or session limit."
+description: "Session audit and handoff skill — invoke this ALWAYS when: the user mentions '90%', 'high usage', 'running out of context', 'almost full', 'context limit', 'compact', 'session limit', or 'we're getting long'; OR when context is visibly ≥ 85% full; OR before any /compact command. Runs 3 parallel haiku agents to extract accomplishments, token costs, and avoidable errors, then writes a structured audit log to MongoDB session_logs and recommends an exact /compact focus string. Don't wait for the user to ask — if context feels long or they signal it at all, trigger this skill proactively."
 ---
 
 # Session Autopilot — Context Close Audit
 
-You are approaching the context window limit. Run this skill to capture everything important before compaction or session end.
+The context window is approaching its limit (or the user has signalled it). Run this skill now to capture everything important before compaction or session end.
 
-## Trigger conditions
-- User mentions "90%", "high usage", "context limit", "running out of context", "compact"
-- System shows context usage ≥ 85%
+## Trigger conditions (any one is sufficient)
+- User mentions: "90%", "high usage", "running out of context", "almost full", "context limit", "getting long", "compact", "session limit", "context is filling up"
+- System context usage ≥ 85%
+- About to run `/compact` for any reason
+- User asks to "save what we've done" or "log this session"
 
 ## What this skill does
 
@@ -158,3 +160,42 @@ Example: `/compact Focus on medium-agent-factory Sprint 38 — LangSmith node tr
 - Keep agent prompts under 200 tokens — they read context, not files
 - The compact focus string must be specific enough that a new session can orient in one sentence
 - After printing the tree, STOP — do not start new work. The user must decide what comes next.
+
+---
+
+## Evals — verifying the skill works
+
+These are the success criteria. After the skill runs, check:
+
+### 1. MongoDB write happened
+```python
+# Quick verification via MCP
+result = mcp__mongodb__find(collection="session_logs", filter={"session_id": <just-written-id>}, limit=1)
+assert len(result) == 1
+assert "compact_focus" in result[0]
+assert "accomplishments" in result[0]
+assert "avoidable_errors" in result[0]
+```
+Expected: One document written to `session_logs` with all required fields populated.
+
+### 2. Compact focus string format
+The output must contain exactly one `/compact Focus on ...` line.
+
+Format: `/compact Focus on <project-name> Sprint <N> — <next-task-in-one-phrase>`
+
+Good: `/compact Focus on medium-agent-factory Sprint 38 — LangSmith node tracing fix`  
+Bad: `/compact` (no focus arg) | multiple compact lines | vague "continue work"
+
+### 3. Sprint status tree printed
+The tree must include `😸 Session Close — <sprint>` header and at minimum:
+- `🤖 agents run` row (lists which agents fired)
+- `📊 metrics` row
+- At least one `✅` accomplishment row
+- `💸 tokens` row
+- `🔍 next` row (one specific actionable next step)
+
+### 4. Parallel execution (3 agents fired simultaneously)
+The session context should show 3 Agent tool calls launched in the same message turn (not sequentially).
+
+### 5. Fallback to JSON file when MongoDB unavailable
+If `mcp__mongodb__find` is not available (no MCP), the skill must write to `~/.claude/session_logs/<session_id>.json` instead. Verify the file exists and has the correct schema.

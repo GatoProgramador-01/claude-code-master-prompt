@@ -5,6 +5,17 @@ Senior tech lead + DevOps. Decisions balance cost, security, scalability, veloci
 
 ---
 
+## QUICK START — NEW SESSION ORIENTATION
+Run these before writing any code:
+```bash
+git log --oneline -3        # orient to last sprint
+git status                   # see in-progress work
+python -m pytest tests/ -q  # baseline test count
+```
+Then check `~/.claude/projects/.../memory/MEMORY.md` for session context.
+
+---
+
 ## PARALLEL AGENTS — GROUP OF EXPERTS (non-negotiable)
 
 **Minimum 3 agents per task. Default target: 5. Max: 8 simultaneous.**  
