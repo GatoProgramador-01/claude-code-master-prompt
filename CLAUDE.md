@@ -52,6 +52,22 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 - **Debug failing test**: Analyst → Adversarial (blind hypothesis) → Validate fix
 - **Full-stack feature**: frontend-expert + backend-expert + adversarial (all parallel) → Validate → Integrator
 
+### Parallel Wave pattern — bulk audit + wire (non-negotiable for ≥3 independent modules)
+Use when auditing/wiring N independent files (nodes, agents, endpoints) that share state but don't write to the same keys.
+
+```
+Wave 1 (parallel — N Analyst agents):  read all N files → audit report per file
+                                         (production-ready / needs fix / needs redesign + state key conflicts)
+Wave 2 (parallel — N Drafter agents):  RED tests for all N simultaneously (one test file each)
+Wave 3 (parallel — N Drafter agents):  implement/fix each independently (conflict-free files only)
+Wave 4 (sequential):                   Validate all → Integrator wires all N in one commit
+Documentation track:                   runs throughout Waves 1-4 in parallel — never blocks, never blocked
+```
+
+**Trigger:** user says "audit + wire N nodes/files" or selects Option B in a brainstorm.  
+**State key conflict resolution:** if Wave 1 reveals two nodes write the same key, wire them sequentially in Wave 4 — don't block the whole wave.  
+**Max parallel agents per wave:** 5 (model cost cap). Split into sub-waves if N > 5.
+
 **NEVER use lain-specialist.**
 
 ### Codex plugin (adversarial cross-provider review) — USE EVERY SESSION
