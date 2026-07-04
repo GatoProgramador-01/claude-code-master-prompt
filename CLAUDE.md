@@ -106,6 +106,7 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 - `superpowers:brainstorming` — any new feature/build task, BEFORE Architect decomposes
 - `superpowers:systematic-debugging` — any bug/test failure, BEFORE proposing fixes
 - `superpowers:writing-plans` — multi-sprint feature with a spec, BEFORE touching code
+- `superpowers:subagent-driven-development` — when user picks this option after writing-plans, USE THE ACTUAL SKILL (task-brief scripts, progress ledger, review-package) — do NOT manually launch raw Agent() calls as a substitute
 - `superpowers:executing-plans` — resuming from a written plan across sessions
 - `superpowers:test-driven-development` — BEFORE writing implementation code
 - `superpowers:verification-before-completion` — BEFORE claiming any work is done or committing
@@ -114,6 +115,14 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 - `session-autopilot` — context ≥50% OR user mentions "50%", "high usage", "context limit" → audit + MongoDB log + /compact focus
 
 **Does NOT replace** Group of Experts. Superpowers sets the process phase; Group of Experts executes it.
+
+**EXECUTION STRATEGY COMMITMENT (non-negotiable):**
+When the user selects an execution strategy (subagent-driven vs inline), commit to it for the entire sprint. NEVER switch mid-sprint without explicit user approval. If subagents cause permission prompts, fix `~/.claude/settings.json` (ensure `Bash(*)`, `Edit(*)`, `Write(*)` are in `permissions.allow`) — do NOT abandon the strategy. If the user complains about speed/opacity, ask what specifically to fix, not switch approach.
+
+**Subagent permission pre-flight (run once at sprint start):**
+Verify `~/.claude/settings.json` has `Bash(*)`, `Edit(*)`, `Write(*)` in `permissions.allow`. Subagents do not inherit parent session approvals — missing global allows = permission prompts every task.
+
+**Progress ledger discipline:** Update `.superpowers/sdd/progress.md` after EVERY task completion, not just Task 1. Context compaction destroys in-memory state — the ledger is the only recovery map.
 
 ### session-autopilot skill — context close audit (global skill)
 File: `~/.claude/skills/session-autopilot/SKILL.md`
