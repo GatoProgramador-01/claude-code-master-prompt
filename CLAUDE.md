@@ -111,14 +111,14 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 - `superpowers:verification-before-completion` — BEFORE claiming any work is done or committing
 - `superpowers:dispatching-parallel-agents` — when 2+ independent tasks exist
 - `superpowers:requesting-code-review` — after completing major feature, before merging
-- `session-autopilot` — context ≥85% OR user mentions "90%", "high usage", "context limit" → audit + MongoDB log + /compact focus
+- `session-autopilot` — context ≥50% OR user mentions "50%", "high usage", "context limit" → audit + MongoDB log + /compact focus
 
 **Does NOT replace** Group of Experts. Superpowers sets the process phase; Group of Experts executes it.
 
 ### session-autopilot skill — context close audit (global skill)
 File: `~/.claude/skills/session-autopilot/SKILL.md`
 
-Auto-triggers at ~90% context usage. Runs 3 parallel haiku agents:
+Auto-triggers at ~50% context usage. Runs 3 parallel haiku agents:
 - **Session Analyst**: git log + conversation context → accomplishments, next steps, files changed
 - **Token Auditor**: MongoDB `agent_runs` query → token breakdown by agent, estimated cost
 - **Error Auditor**: conversation scan → errors encountered, avoidable errors, correct first move
@@ -140,7 +140,7 @@ Prints sprint status tree + recommends `/compact Focus on <project> <sprint> —
   "avoidable_errors": [{"error": "", "cause": "", "correct_first_move": ""}],
   "token_usage": {"total_tokens": 0, "by_agent": {}, "estimated_cost_usd": 0.0},
   "compact_focus": "/compact Focus on ...",
-  "context_usage_pct": 90
+  "context_usage_pct": 50
 }
 ```
 
@@ -214,9 +214,7 @@ Session: `/compact` at task boundaries | `/compact Focus on API changes` to scop
          `/effort` sets reasoning depth (low/medium/high) | `/goal <condition>` re-checks after every turn
 
 **Auto-compact policy (non-negotiable):**
-- **>60% context + post-commit boundary** → compact immediately: `/compact Focus on <project> Sprint <N> — <next task>`
-- **>75% context mid-sprint** → compact now, no exceptions: `/compact Focus on current file changes only`
-- **<60%** → continue; no compact needed
+- **≥50% context** → compact immediately, no exceptions: `/compact Focus on <project> Sprint <N> — <next task>`
 - Always use scoped compact with focus arg — blind `/compact` loses too much sprint state
 - After compact: verify CLAUDE.md + memory loaded, check `git log --oneline -3` to reorient
 - New session resume: `claude --continue` preserves compacted context; `--resume` picks a prior checkpoint
