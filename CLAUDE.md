@@ -33,6 +33,7 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 
 **SKILL USAGE — mandatory in-session triggers:**  
 - Any sprint start → `/codex:rescue --background` fires immediately, before Claude writes a line  
+- Any sprint start → `superpowers:subagent-driven-development` fires after writing-plans, before any code is written  
 - Any commit → `/codex:adversarial-review --fresh --background` fires before declaring sprint done  
 - Skills visible on screen = good session. Zero skills used = failed session.
 
@@ -55,13 +56,13 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 | **jsdoc** | sonnet | `~/.claude/agents/jsdoc.md` | TSDoc on TypeScript exports |
 
 ### Standard workflow teams
-- **New pipeline feature**: Analyst + Architect (parallel) → Adversarial → llmops-expert + Drafter (parallel) → Validate → Integrator
-- **New API endpoint**: Architect → backend-expert + adversarial (parallel) → Validate → commit
-- **Frontend feature**: frontend-expert + adversarial (parallel) → Validate → jsdoc → commit
-- **Deploy/infra change**: devops-expert → adversarial → Validate → commit
+- **New pipeline feature**: Analyst + Architect (parallel) → Adversarial → writing-plans → SDD → Validate → Integrator
+- **New API endpoint**: Architect → backend-expert + adversarial (parallel) → writing-plans → SDD → Validate → commit
+- **Frontend feature**: frontend-expert + adversarial (parallel) → writing-plans → SDD → Validate → jsdoc → commit
+- **Deploy/infra change**: devops-expert → adversarial → writing-plans → SDD → Validate → commit
 - **Research-backed post**: researcher (grounding) → Architect (topic string) → pipeline run
 - **Debug failing test**: Analyst → Adversarial (blind hypothesis) → Validate fix
-- **Full-stack feature**: frontend-expert + backend-expert + adversarial (all parallel) → Validate → Integrator
+- **Full-stack feature**: frontend-expert + backend-expert + adversarial (all parallel) → writing-plans → SDD → Validate → Integrator
 
 ### Parallel Wave pattern — bulk audit + wire (non-negotiable for ≥3 independent modules)
 Use when auditing/wiring N independent files (nodes, agents, endpoints) that share state but don't write to the same keys.
@@ -106,7 +107,7 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 - `superpowers:brainstorming` — any new feature/build task, BEFORE Architect decomposes
 - `superpowers:systematic-debugging` — any bug/test failure, BEFORE proposing fixes
 - `superpowers:writing-plans` — multi-sprint feature with a spec, BEFORE touching code
-- `superpowers:subagent-driven-development` — when user picks this option after writing-plans, USE THE ACTUAL SKILL (task-brief scripts, progress ledger, review-package) — do NOT manually launch raw Agent() calls as a substitute
+- `superpowers:subagent-driven-development` — MANDATORY every sprint, immediately after writing-plans, before any code is written — USE THE ACTUAL SKILL (task-brief scripts, progress ledger, review-package) — do NOT manually launch raw Agent() calls as a substitute
 - `superpowers:executing-plans` — resuming from a written plan across sessions
 - `superpowers:test-driven-development` — BEFORE writing implementation code
 - `superpowers:verification-before-completion` — BEFORE claiming any work is done or committing
