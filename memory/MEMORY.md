@@ -12,3 +12,4 @@
 - [LLM JSON Coerce Fix](feedback_llm_json_coerce.md) — LLMs emit curly quotes/em-dashes that break json.loads; always use unicode-normalizer fallback in every Pydantic str→list validator
 - [setuptools Package Discovery](feedback_setuptools_package_discovery.md) — evals/ or scripts/ next to app/ causes "Multiple top-level packages" error; always add [tool.setuptools.packages.find] include=["app*"]
 - [Master Prompt Repo](reference_master_prompt_repo.md) — CLAUDE.md versioned at Documents/github/claude-code-master-prompt (public repo, branch main)
+- [SDD Mandatory Every Sprint](feedback_sdd_mandatory.md) — subagent-driven-development is non-negotiable after writing-plans; parallel is the default, never optional
