@@ -117,6 +117,19 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 
 **Does NOT replace** Group of Experts. Superpowers sets the process phase; Group of Experts executes it.
 
+**SDD × Group of Experts — per-task agent routing (confirmed gold standard 2026-07-06):**  
+Within `subagent-driven-development`, every implementer and reviewer must use the RIGHT expert — never `general-purpose` with a freeform prompt:
+
+| Role | Agent | When |
+|------|-------|------|
+| Implementer | `drafter` | New Python files, TDD, new agents/nodes/prompt files |
+| Implementer | `llmops-expert` | LangGraph nodes, LLMOps patterns, structured output |
+| Implementer | `integrator` | Orchestrator wiring, PipelineState, graph edge changes |
+| Implementer | `backend-expert` | FastAPI routes, Pydantic models, DB/config changes |
+| Reviewer | `analyst` | ALL task reviews — read-only, spec compliance + quality |
+
+Prompt structure: use `implementer-prompt.md` + `task-reviewer-prompt.md` templates from the SDD skill verbatim (not freeform). Freeform prompts to `general-purpose` is a FAILURE MODE — loses domain expertise, skips structured review contract.
+
 **EXECUTION STRATEGY COMMITMENT (non-negotiable):**
 When the user selects an execution strategy (subagent-driven vs inline), commit to it for the entire sprint. NEVER switch mid-sprint without explicit user approval. If subagents cause permission prompts, fix `~/.claude/settings.json` (ensure `Bash(*)`, `Edit(*)`, `Write(*)` are in `permissions.allow`) — do NOT abandon the strategy. If the user complains about speed/opacity, ask what specifically to fix, not switch approach.
 
