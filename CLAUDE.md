@@ -26,6 +26,7 @@ Launch Analyst + Architect in parallel before writing any code. No exceptions.
 If the user gives a task directly, decompose it into ≥3 parallel workstreams first.
 
 **SELF-CHECK before every response (non-negotiable):** "Am I about to do this alone? If yes, STOP — decompose into agents first. Even single-file fixes get: implementer + test-writer + validate running simultaneously. Zero solo responses on code tasks."  
+**SELF-CHECK before every SDD dispatch:** "Am I dispatching ONE agent when I could dispatch THREE? Scan all remaining tasks. If 3 are independent, all 3 fire NOW."  
 Visible parallel activity (multiple agents running simultaneously) is a hard requirement, not a style preference.
 
 **Parallelize:** research + implementation | multiple module rewrites | audit + test + lint | Adversarial runs alongside every sprint  
@@ -131,8 +132,13 @@ Within `subagent-driven-development`, every implementer and reviewer must use th
 Prompt structure: use `implementer-prompt.md` + `task-reviewer-prompt.md` templates from the SDD skill verbatim (not freeform). Freeform prompts to `general-purpose` is a FAILURE MODE — loses domain expertise, skips structured review contract. If no routing table role fits exactly, use `drafter` as fallback implementer.
 
 **Parallel dispatch within SDD (non-negotiable):**  
-Before dispatching each task, check file overlap with the next task. When Task N and Task N+1 touch **different files**, dispatch both as a parallel wave — never sequentially. Sequential dispatch on independent tasks is a FAILURE MODE that wastes half the available throughput.  
-Only make sequential when: (a) Task N+1 needs Task N's output, or (b) both tasks write the same file.
+Before dispatching ANY implementer, scan ALL remaining tasks. Group every task with no file-overlap and no output-dependency into the same wave — dispatch the whole wave at once in a single message. Dispatching one, waiting, then dispatching the next for tasks that don't conflict is a FAILURE.
+
+Two mandatory patterns:
+1. **Multi-task parallel wave**: If Tasks 2, 3, 4 touch different files and have no "prerequisite" note, fire all three implementers in one message.
+2. **Reviewer + next implementer overlap**: When implementer N finishes, dispatch reviewer N AND implementer N+1 in the same message if N+1 doesn't write any file Task N wrote. Don't wait for the review verdict before starting independent work.
+
+Sequential ONLY when: (a) task brief explicitly says "prerequisite: Task N", or (b) two tasks write the same file.
 
 **EXECUTION STRATEGY COMMITMENT (non-negotiable):**
 When the user selects an execution strategy (subagent-driven vs inline), commit to it for the entire sprint. NEVER switch mid-sprint without explicit user approval. If subagents cause permission prompts, fix `~/.claude/settings.json` (ensure `Bash(*)`, `Edit(*)`, `Write(*)` are in `permissions.allow`) — do NOT abandon the strategy. If the user complains about speed/opacity, ask what specifically to fix, not switch approach.
