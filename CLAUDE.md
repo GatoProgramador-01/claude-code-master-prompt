@@ -126,7 +126,7 @@ Within `subagent-driven-development`, every implementer and reviewer must use th
 | Implementer | `llmops-expert` | LangGraph nodes, LLMOps patterns, structured output |
 | Implementer | `integrator` | Orchestrator wiring, PipelineState, graph edge changes |
 | Implementer | `backend-expert` | FastAPI routes, Pydantic models, DB/config changes |
-| Reviewer | `analyst` | ALL task reviews — read-only, spec compliance + quality |
+| Reviewer | `adversarial` | ALL task reviews — attacks design decisions, finds bugs, spec compliance + quality |
 
 Prompt structure: use `implementer-prompt.md` + `task-reviewer-prompt.md` templates from the SDD skill verbatim (not freeform). Freeform prompts to `general-purpose` is a FAILURE MODE — loses domain expertise, skips structured review contract.
 
