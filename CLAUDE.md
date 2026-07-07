@@ -140,6 +140,9 @@ Two mandatory patterns:
 
 Sequential ONLY when: (a) task brief explicitly says "prerequisite: Task N", or (b) two tasks write the same file.
 
+**Push after every commit (non-negotiable):**  
+Every `git commit` is immediately followed by `git push origin <branch>`. Never accumulate unpushed commits. If the pre-push hook fails on ruff/black, run `ruff check --fix backend/ && black backend/` first, re-stage, commit the format fix, then push. Never use `--no-verify` unless the user explicitly says so.
+
 **EXECUTION STRATEGY COMMITMENT (non-negotiable):**
 When the user selects an execution strategy (subagent-driven vs inline), commit to it for the entire sprint. NEVER switch mid-sprint without explicit user approval. If subagents cause permission prompts, fix `~/.claude/settings.json` (ensure `Bash(*)`, `Edit(*)`, `Write(*)` are in `permissions.allow`) — do NOT abandon the strategy. If the user complains about speed/opacity, ask what specifically to fix, not switch approach.
 
@@ -236,7 +239,8 @@ Exit: `exit 2` + stderr = block | `exit 0` = proceed
 Key hooks:
 - PostToolUse (Edit|Write): auto-format `.py` → black | `.ts/.tsx` → prettier
 - PostToolUse (Bash): compress verbose build output — pipe through `grep -E "(ERROR|error|WARN|FAIL)" | head -200` before Claude reads it (10K lines → 200)
-- PreToolUse (Bash): block `git push --force*` with exit 2
+- PreToolUse (Bash): block `git push --force*` with exit 2  
+  **Pre-push auto-fix pattern:** if the hook fails on ruff/black, run `ruff check --fix backend/ && black backend/`, re-stage and commit the format changes, then retry push. Never `--no-verify`.
 - Stop hook: verification script that blocks turn-end until it passes — strongest gate for unattended runs
 - User-level: Windows MessageBox notification on idle_prompt
 
