@@ -4,7 +4,7 @@
 
 [![Maintained](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)]() [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![Node](https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/) [![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/) [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat-square&logo=terraform&logoColor=white)](https://www.terraform.io/) [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-**A production Claude Code operating prompt — the CLAUDE.md master configuration used across real projects. Enforces parallel agents, a Group of Experts system, TDD, Docker-first dev, and cost-aware model routing on every session.**
+**A production Claude Code operating prompt — the CLAUDE.md master configuration used across real projects. Enforces parallel agents, a 14-agent Group of Experts system, Superpowers SDD integration, Codex cross-provider adversarial review, TDD, Docker-first dev, and cost-aware model routing on every session.**
 
 [View CLAUDE.md](CLAUDE.md) | [Author](https://github.com/GatoProgramador-01)
 
@@ -18,7 +18,7 @@ This repository contains the `CLAUDE.md` file that acts as a persistent system p
 
 The file is the product of real production failures across multiple projects: tests that passed locally and crashed Docker, Terraform configs that failed `validate` before a single resource was created, LangGraph agents that broke on 3% of production traffic. Every rule in it was written in response to a specific, documented mistake.
 
-The current version introduces the **Group of Experts** system: 14 specialized agents, each with a defined domain and model tier, replacing the older single-agent-plus-utilities pattern.
+The current version introduces the **Group of Experts** system (14 specialized agents), mandatory **Superpowers SDD** workflow integration, and **Codex cross-provider adversarial review** baked into every task review cycle.
 
 ---
 
@@ -26,18 +26,22 @@ The current version introduces the **Group of Experts** system: 14 specialized a
 
 - **Parallel agents by default** — minimum 3 agents per task, default target 5, max 8 simultaneous. Single-agent responses are the exception, not the default.
 - **Group of Experts** — 14 named agents covering every layer of a fullstack + DevOps stack, each with a dedicated `.md` file and model assignment.
+- **Superpowers SDD** — `superpowers:subagent-driven-development` fires after every `writing-plans` call, before any code is written. Inline execution is not an option.
+- **Codex adversarial review in SDD** — after every implementer commit, the controller runs `codex:adversarial-review --wait` (GPT-5.4, cross-provider) in the main session and passes the findings to the adversarial reviewer subagent. No task review happens without Codex.
+- **Parallel wave dispatch** — before dispatching ANY implementer, the controller scans ALL remaining tasks and fires every independent task in the same message. One-at-a-time dispatch on non-conflicting tasks is a failure mode.
 - **TDD non-negotiable** — Red → Green → Refactor. Tests written before implementation on every task. Bug fixes start with a failing test.
-- **Docker-first** — `docker compose up --build` is the only acceptable way to start services. A pre-commit hook blocks dependency changes until the Docker build passes.
+- **Docker-first** — `docker compose up --build` is the only acceptable way to start services.
 - **Cost routing** — Haiku for read/search/lint (10x cheaper), Sonnet for write/review/refactor, Opus only for cross-cutting architecture tradeoffs.
 - **Hooks system** — PostToolUse auto-formats Python and TypeScript, compresses verbose build logs to 200 lines before Claude reads them, blocks force-pushes at the PreToolUse level.
-- **Auto-compact policy** — context budget rules that trigger `/compact` with a focused scope string at defined thresholds, preventing silent context loss mid-sprint.
-- **Lazy-loaded domain rules** — Terraform, AWS, CI/CD, LangChain, and Python testing rules live in `.claude/rules/` and load only when matching files are touched. Zero per-turn cost when out of scope.
+- **Auto-compact policy** — explicit context budget rules that trigger `/compact` with a focused scope string at defined thresholds.
+- **Lazy-loaded domain rules** — Terraform, AWS, CI/CD, LangChain, and Python testing rules live in `.claude/rules/` and load only when matching files are touched.
+- **Push after every commit** — every `git commit` is immediately followed by `git push origin <branch>`. Never accumulate unpushed commits.
 
 ---
 
 ## The Group of Experts
 
-14 agents, each with a defined model tier and domain. The Architect routes work to the appropriate experts; the Adversarial agent attacks every design before the Drafter writes a line of code.
+14 agents, each with a defined model tier and domain. The Architect routes work to the appropriate experts; Codex runs as a cross-provider adversarial attacker after every implementer commit.
 
 | Agent | Model | Domain |
 |-------|-------|--------|
@@ -47,7 +51,7 @@ The current version introduces the **Group of Experts** system: 14 specialized a
 | **llmops-expert** | sonnet | LangGraph nodes, structured output, evals, observability |
 | **devops-expert** | sonnet | Docker, GitHub Actions, Terraform, Railway/Vercel |
 | **researcher** | sonnet | Web research, source verification, grounding facts before pipeline runs |
-| **Adversarial** | sonnet | Attacks every design — runs after Architect, before Drafter |
+| **Adversarial** | sonnet | Synthesizes Codex findings into spec compliance + code quality verdict |
 | **Drafter** | haiku | TDD: RED tests first, then implementation |
 | **Integrator** | sonnet | Wires orchestrator.py, resolves import conflicts, commits |
 | **Analyst** | haiku | Reads logs/DB/tests — no code writing |
@@ -60,12 +64,48 @@ The current version introduces the **Group of Experts** system: 14 specialized a
 
 | Scenario | Team |
 |----------|------|
-| New pipeline feature | Analyst + Architect (parallel) → Adversarial → llmops-expert + Drafter (parallel) → Validate → Integrator |
-| New API endpoint | Architect → backend-expert + Adversarial (parallel) → Validate → commit |
-| Frontend feature | frontend-expert + Adversarial (parallel) → Validate → jsdoc → commit |
-| Deploy / infra change | devops-expert → Adversarial → Validate → commit |
-| Full-stack feature | frontend-expert + backend-expert + Adversarial (all parallel) → Validate → Integrator |
+| New pipeline feature | Analyst + Architect (parallel) → Adversarial → writing-plans → SDD → Validate → Integrator |
+| New API endpoint | Architect → backend-expert + Adversarial (parallel) → writing-plans → SDD → Validate → commit |
+| Frontend feature | frontend-expert + Adversarial (parallel) → writing-plans → SDD → Validate → jsdoc → commit |
+| Deploy / infra change | devops-expert → Adversarial → writing-plans → SDD → Validate → commit |
+| Full-stack feature | frontend-expert + backend-expert + Adversarial (all parallel) → writing-plans → SDD → Validate → Integrator |
 | Debug failing test | Analyst → Adversarial (blind hypothesis) → Validate fix |
+
+---
+
+## SDD × Group of Experts Integration
+
+The Superpowers SDD skill and the Group of Experts system are wired together through a routing table and a two-step review flow. Every sprint follows this exact path.
+
+### Per-task agent routing
+
+| Role | Agent / Skill | When |
+|------|--------------|------|
+| Implementer | `drafter` | New Python files, TDD, new agents/nodes/prompt files |
+| Implementer | `llmops-expert` | LangGraph nodes, LLMOps patterns, structured output |
+| Implementer | `integrator` | Orchestrator wiring, PipelineState, graph edge changes |
+| Implementer | `backend-expert` | FastAPI routes, Pydantic models, DB/config changes |
+| Review step 1 | `codex:adversarial-review --wait` (controller) | After implementer commits — controller runs in main session; GPT-5.4 cross-provider attack on the diff |
+| Review step 2 | `adversarial` (subagent) | Receives Codex JSON findings; issues final spec compliance + code quality verdict |
+
+Dispatching `general-purpose` with a freeform prompt instead of these roles is an explicit failure mode — it loses domain expertise and skips the structured review contract. If no role fits exactly, `drafter` is the fallback implementer.
+
+### SDD review flow (per task, non-negotiable)
+
+1. Implementer subagent commits and reports status
+2. Controller runs `Skill("codex:adversarial-review", "--wait")` in the main session — GPT-5.4 attacks the diff
+3. Controller appends Codex JSON findings (severity, file:line, recommendations) to the task reviewer prompt
+4. Controller dispatches `adversarial` subagent with: task brief + implementer report + review package + Codex findings
+5. `adversarial` subagent issues two verdicts: **(1) spec compliance** and **(2) code quality** — using Codex attack results as primary input
+6. If either verdict fails, a fix subagent re-implements and the review loop repeats
+
+### Parallel dispatch rule (non-negotiable)
+
+Before dispatching ANY implementer, the controller scans ALL remaining tasks. Every task with no file-overlap and no output-dependency is grouped into the same wave and dispatched in a single message. Dispatching one task, waiting, then dispatching the next for non-conflicting tasks is a failure.
+
+Two mandatory patterns:
+- **Multi-task parallel wave**: if Tasks 2, 3, 4 touch different files with no "prerequisite" note, all three implementers fire in one message
+- **Reviewer + next implementer overlap**: when implementer N finishes, dispatch reviewer N AND implementer N+1 in the same message if they don't share files
 
 ---
 
@@ -94,6 +134,21 @@ cp -r claude-code-master-prompt/.claude/rules ~/.claude/
 
 Each agent in `~/.claude/agents/` is a markdown file that Claude Code loads when you invoke the agent by name. The model tier is set in the frontmatter of each file.
 
+**Install the required plugins (Superpowers SDD + Codex adversarial review):**
+
+```bash
+# Superpowers — structured workflow: brainstorm → plan → SDD → TDD → review → finish
+/plugin marketplace add obra/superpowers
+/plugin install superpowers@superpowers-dev
+/reload-plugins
+
+# Codex — cross-provider GPT-5.4 adversarial review + rescue
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+/codex:setup
+```
+
 **Project-specific overrides:**
 
 ```bash
@@ -120,7 +175,7 @@ EOF
 │   ├── llmops-expert.md           # sonnet — LangGraph + evals specialist
 │   ├── devops-expert.md           # sonnet — Docker/Terraform/CI specialist
 │   ├── researcher.md              # sonnet — web research + grounding
-│   ├── adversarial.md             # sonnet — attacks design before drafter codes
+│   ├── adversarial.md             # sonnet — synthesizes Codex findings → verdict
 │   ├── drafter.md                 # haiku  — TDD RED first, then implements
 │   ├── integrator.md              # sonnet — wires orchestrator, commits
 │   ├── analyst.md                 # haiku  — read-only diagnostics
@@ -168,7 +223,9 @@ These are rules derived from specific production failures, not general best prac
 | `ruff select` must live in `[tool.ruff.lint]`, not `[tool.ruff]` | ruff >= 0.8 silently ignores `select` under `[tool.ruff]`; the linter appeared to run but enforced nothing |
 | CLAUDE.md must stay under 200 lines with domain rules lazy-loaded | The CLAUDE.md grew to 1,300 lines, loading every turn regardless of the task; a React component fix paid the full token cost of the Terraform HCL guide |
 | PostToolUse hook on Bash compresses verbose build output before Claude reads it | A failing CI job dumped 8,000 lines of Maven build log into context; Claude spent the entire context budget on log parsing instead of fixing the root cause |
-| Adversarial agent runs before Drafter writes code | A LangGraph node returned structured output without validating the schema against actual LLM behavior; the Adversarial agent would have caught the missing fallback validator before any code was written |
+| Adversarial review always runs before spec compliance verdict | A LangGraph node returned structured output without validating the schema against actual LLM behavior; the adversarial pass would have caught the missing fallback validator before any code was written |
+| Codex adversarial-review runs in the controller session, not as a subagent | Dispatching an adversarial Claude subagent means same-provider, same-model review — misses blind spots. GPT-5.4 cross-provider review via Codex catches design decisions that Claude consistently overlooks |
+| Parallel dispatch scans ALL remaining tasks before firing any one | Dispatching Task 2, waiting for review, then dispatching Task 3 (no shared files) burned 2× the wall time and created no quality benefit — independent tasks must fire in the same wave |
 
 ---
 
@@ -176,17 +233,15 @@ These are rules derived from specific production failures, not general best prac
 
 Context budget management is explicit and rule-driven, not left to judgment:
 
-- **Over 60% context used at a post-commit boundary** → compact immediately with a focused scope: `/compact Focus on <project> Sprint <N> — <next task>`
-- **Over 75% context mid-sprint** → compact now, no exceptions: `/compact Focus on current file changes only`
-- **Under 60%** → continue; no compact needed
-
-Always use a scoped compact with a focus argument. A blind `/compact` discards too much sprint state. After compacting, verify CLAUDE.md and memory are loaded, then run `git log --oneline -3` to reorient.
+- **≥50% context used** → compact immediately, no exceptions: `/compact Focus on <project> Sprint <N> — <next task>`
+- Always use a scoped compact with a focus argument — a blind `/compact` discards too much sprint state
+- After compacting, verify CLAUDE.md and memory are loaded, then run `git log --oneline -3` to reorient
 
 ---
 
 ## Codex Adversarial Review
 
-The Codex CLI plugin (`openai/codex-plugin-cc`) runs a second model family against every sprint — catching blind spots that same-model review misses. Install once, then follow the mandatory cadence on every sprint.
+The Codex CLI plugin (`openai/codex-plugin-cc`) runs a second model family against every sprint — catching blind spots that same-model review misses.
 
 **Install:**
 
@@ -200,41 +255,66 @@ The Codex CLI plugin (`openai/codex-plugin-cc`) runs a second model family again
 **Mandatory cadence (non-negotiable):**
 
 - Sprint start: `/codex:rescue --background` fires before writing a line of code
-- After every commit: `/codex:adversarial-review --fresh --background`
+- After every implementer commit (SDD): controller runs `/codex:adversarial-review --wait` in main session, then passes findings to the adversarial reviewer subagent
+- After sprint completion: `/codex:adversarial-review --fresh --background` — no sprint is declared done without this
 - When stuck >5 min: delegate immediately to `/codex:rescue`
-- Sprint 31+: Codex implements ONE node per sprint (not just reviews)
 
-Always use `--background` — never block the session waiting for Codex. Claude and Codex work in parallel; the session does not pause.
+Always use `--background` for end-of-sprint reviews (non-blocking). Use `--wait` for per-task SDD reviews (the findings are needed synchronously before dispatching the reviewer subagent).
+
+**What Codex returns (per-task review):**
+
+```json
+{
+  "verdict": "needs-attention",
+  "findings": [
+    {
+      "file": "app/agents/nodes/humanizer_pass.py",
+      "line_start": 100,
+      "confidence": 0.92,
+      "recommendation": "image guard compares full strings not descriptions — alt-text rewording triggers false positive"
+    }
+  ]
+}
+```
+
+The controller appends these findings to the `adversarial` reviewer subagent's prompt. The reviewer synthesizes Codex results into spec compliance and code quality verdicts.
 
 ---
 
 ## Sprint Status UI
 
-Every sprint prints a live status tree — before agents launch (showing the plan) and rebuilt after each completion wave (showing progress). It is the single visual that makes parallel agent work scannable.
+Every sprint prints a live status tree — before agents launch (showing the plan) and rebuilt after each completion wave (showing progress).
 
 **Format:**
 
 ```
-😸 Sprint N — activo [3/6 completados]
-├── ✅ copy_editor_node.py  [████████] done    — score cap: penalties>0.30
-├── ✅ test_sme_reviewer    [████████] done    — 15 RED→GREEN tests
-├── 🔄 sme_reviewer_node   [░░░░░░░░] running — implement SME check
-├── 🔄 integrator          [░░░░░░░░] running — wire sme_review_check
-├── 🔄 validate            [░░░░░░░░] queued  — full test suite gate
-└── 🔍 Codex              [░░░░░░░░] running — adversarial Sprint 31
+😸 Sprint N — activo
+├── 🤖 agentes  — 4 parallel (drafter·llmops-expert·validate·codex)
+├── 🧠 skills   — brainstorming → writing-plans → subagent-driven-development
+├── 📊 metrics  — tests 761→833 · TS 0 errors · build ✅
+├── ✅ pre_revision.py       — 17 _SLOP_SUBS entries added
+├── ✅ humanizer_pass.py     — missing_messiness injection node
+├── 🔄 orchestrator.py      — wiring humanizer_pass → fact_check
+└── 🔍 Codex (bg)           — adversarial review Sprint N
 ```
 
-**Rules:**
+**Row order (always in this sequence):**
 
-- `😸` header only — ONE per tree, never in rows
-- `[████████]` done ✅ · `[░░░░░░░░]` running or queued 🔄 · `[████████]` failed ❌
-- `[N/M completados]` counter updates after each completion wave
-- Codex always gets the bottom `🔍` row — makes cross-provider review a first-class citizen
-- Row description ≤ 40 chars, columns right-padded for alignment
-- Print tree BEFORE launching agents (it's the sprint plan) AND rebuild after each wave
+1. `🤖 agentes` — how many running and which ones
+2. `🧠 skills` — Superpowers skills fired this sprint in order
+3. `📊 metrics` — test delta (before→after), TS error count, build status
+4. `✅/🔄/❌` — one row per file or agent worked on
+5. `🔍 Codex` — always last row
 
-**Why it works:**
-Binary bars give the one metric that matters — running vs finished — without reading descriptions. The `[N/M]` counter shows sprint velocity at a glance. Printing the tree before any agent fires forces decomposition before execution.
+**Cat emoji legend:**
+
+- `😸` — header only (ONE per sprint tree, nowhere else)
+- `✅` — completed
+- `🔄` — in progress / waiting
+- `❌` — failed / blocked
+- `🔍` — Codex adversarial (always last)
+
+Print the tree BEFORE launching agents (shows the plan with baseline metrics), then rebuild after each completion wave.
 
 ---
 
@@ -264,6 +344,7 @@ Binary bars give the one metric that matters — running vs finished — without
 | Adversarial agent framework | Dedicated `adversarial.md` agent attacks every design before drafter codes; `architect.md` decomposes; minimum 3 agents per task enforced |
 | Medium 2026 + Codex plugin | Boost Nomination Program; publication-first strategy; Codex CLI plugin (`openai/codex-plugin-cc`) — `/codex:adversarial-review`, `/codex:rescue` |
 | Group of Experts system | 14 specialized agents (frontend-expert, backend-expert, llmops-expert, devops-expert, researcher, code-reviewer added); auto-compact policy with context thresholds; scoped `/compact` rules |
+| SDD × Group of Experts routing | Per-task routing table (drafter/llmops-expert/integrator/backend-expert); Codex adversarial-review wired into SDD task review loop — controller runs `codex:adversarial-review --wait` before every reviewer subagent dispatch; parallel wave dispatch rule added |
 
 </details>
 

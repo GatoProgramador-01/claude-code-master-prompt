@@ -121,13 +121,20 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 **SDD × Group of Experts — per-task agent routing (confirmed gold standard 2026-07-06):**  
 Within `subagent-driven-development`, every implementer and reviewer must use the RIGHT expert — never `general-purpose` with a freeform prompt:
 
-| Role | Agent | When |
-|------|-------|------|
+| Role | Agent / Skill | When |
+|------|--------------|------|
 | Implementer | `drafter` | New Python files, TDD, new agents/nodes/prompt files |
 | Implementer | `llmops-expert` | LangGraph nodes, LLMOps patterns, structured output |
 | Implementer | `integrator` | Orchestrator wiring, PipelineState, graph edge changes |
 | Implementer | `backend-expert` | FastAPI routes, Pydantic models, DB/config changes |
-| Reviewer | `adversarial` | ALL task reviews — attacks design decisions, finds bugs, spec compliance + quality |
+| Review step 1 | `codex:adversarial-review --wait` (controller) | After implementer commits — controller runs in MAIN session; GPT-5.4 cross-provider attack on the diff |
+| Review step 2 | `adversarial` (subagent) | Receives Codex JSON findings; issues final spec compliance + code quality verdict |
+
+**SDD review flow (non-negotiable):**
+1. Controller runs `Skill("codex:adversarial-review", "--wait")` in the main session immediately after the implementer commits
+2. Controller appends Codex findings (severity, file:line, recommendations) to the task reviewer prompt
+3. Controller dispatches `adversarial` subagent with: task brief + implementer report + review package + Codex findings
+4. `adversarial` subagent issues two verdicts: (1) spec compliance and (2) code quality — using Codex attack results as primary input
 
 Prompt structure: use `implementer-prompt.md` + `task-reviewer-prompt.md` templates from the SDD skill verbatim (not freeform). Freeform prompts to `general-purpose` is a FAILURE MODE — loses domain expertise, skips structured review contract. If no routing table role fits exactly, use `drafter` as fallback implementer.
 
