@@ -118,8 +118,8 @@ Superpowers phases (clarify→worktree→plan→subagent-dev→TDD→code-review
 
 **Does NOT replace** Group of Experts. Superpowers sets the process phase; Group of Experts executes it.
 
-**SDD × Group of Experts — per-task agent routing (confirmed gold standard 2026-07-06):**  
-Within `subagent-driven-development`, every implementer and reviewer must use the RIGHT expert — never `general-purpose` with a freeform prompt:
+**SDD × Group of Experts — per-task agent routing (non-negotiable):**  
+Within `subagent-driven-development`, every implementer and reviewer must use the RIGHT expert — NEVER `general-purpose` with a freeform prompt. `general-purpose` loses domain expertise and skips the structured review contract.
 
 | Role | Agent / Skill | When |
 |------|--------------|------|
@@ -127,36 +127,38 @@ Within `subagent-driven-development`, every implementer and reviewer must use th
 | Implementer | `llmops-expert` | LangGraph nodes, LLMOps patterns, structured output |
 | Implementer | `integrator` | Orchestrator wiring, PipelineState, graph edge changes |
 | Implementer | `backend-expert` | FastAPI routes, Pydantic models, DB/config changes |
-| Review step 1 | `codex:adversarial-review --wait` (controller) | After implementer commits — controller runs in MAIN session; GPT-5.4 cross-provider attack on the diff |
-| Review step 2 | `adversarial` (subagent) | Receives Codex JSON findings; issues final spec compliance + code quality verdict |
+| Implementer | `frontend-expert` | React/Next.js/TypeScript, App Router, RTL tests |
+| Implementer | `devops-expert` | Docker, GitHub Actions, Railway/Vercel, Terraform |
+| Review step 1 | `codex:adversarial-review --wait` (controller) | After implementer commits — GPT cross-provider attack on the diff |
+| Review step 2 | `adversarial` (subagent) | Receives Codex findings; issues spec compliance + code quality verdict |
+| Validation | `validate` | pytest / tsc / lint / build gate before commit |
+| Diagnostics | `analyst` | Read-only: logs, DB, test output, git history |
+| Research | `researcher` | Web research, primary sources, fact grounding |
+
+Self-check before every `Agent()` call: "Am I about to use `general-purpose`? If yes, STOP — pick the correct expert from this table."
 
 **SDD review flow (non-negotiable):**
 1. Controller runs `Skill("codex:adversarial-review", "--wait")` in the main session immediately after the implementer commits
 2. Controller appends Codex findings (severity, file:line, recommendations) to the task reviewer prompt
 3. Controller dispatches `adversarial` subagent with: task brief + implementer report + review package + Codex findings
-4. `adversarial` subagent issues two verdicts: (1) spec compliance and (2) code quality — using Codex attack results as primary input
-
-Prompt structure: use `implementer-prompt.md` + `task-reviewer-prompt.md` templates from the SDD skill verbatim (not freeform). Freeform prompts to `general-purpose` is a FAILURE MODE — loses domain expertise, skips structured review contract. If no routing table role fits exactly, use `drafter` as fallback implementer.
+4. `adversarial` subagent issues two verdicts: (1) spec compliance and (2) code quality
 
 **Parallel dispatch within SDD (non-negotiable):**  
-Before dispatching ANY implementer, scan ALL remaining tasks. Group every task with no file-overlap and no output-dependency into the same wave — dispatch the whole wave at once in a single message. Dispatching one, waiting, then dispatching the next for tasks that don't conflict is a FAILURE.
+Before dispatching ANY implementer, scan ALL remaining tasks. Group every task with no file-overlap and no output-dependency into the same wave — dispatch the whole wave at once in a single message.
 
 Two mandatory patterns:
 1. **Multi-task parallel wave**: If Tasks 2, 3, 4 touch different files and have no "prerequisite" note, fire all three implementers in one message.
-2. **Reviewer + next implementer overlap**: When implementer N finishes, dispatch reviewer N AND implementer N+1 in the same message if N+1 doesn't write any file Task N wrote. Don't wait for the review verdict before starting independent work.
+2. **Reviewer + next implementer overlap**: When implementer N finishes, dispatch reviewer N AND implementer N+1 in the same message if N+1 doesn't write any file Task N wrote.
 
 Sequential ONLY when: (a) task brief explicitly says "prerequisite: Task N", or (b) two tasks write the same file.
 
 **Push after every commit (non-negotiable):**  
-Every `git commit` is immediately followed by `git push origin <branch>`. Never accumulate unpushed commits. If the pre-push hook fails on ruff/black, run `ruff check --fix backend/ && black backend/` first, re-stage, commit the format fix, then push. Never use `--no-verify` unless the user explicitly says so.
+Every `git commit` is immediately followed by `git push origin <branch>`. If the pre-push hook fails on ruff/black, run `ruff check --fix backend/ && black backend/` first, re-stage, commit the format fix, then push. Never use `--no-verify` unless the user explicitly says so.
 
 **EXECUTION STRATEGY COMMITMENT (non-negotiable):**
-When the user selects an execution strategy (subagent-driven vs inline), commit to it for the entire sprint. NEVER switch mid-sprint without explicit user approval. If subagents cause permission prompts, fix `~/.claude/settings.json` (ensure `Bash(*)`, `Edit(*)`, `Write(*)` are in `permissions.allow`) — do NOT abandon the strategy. If the user complains about speed/opacity, ask what specifically to fix, not switch approach.
+When the user selects an execution strategy (subagent-driven vs inline), commit to it for the entire sprint. NEVER switch mid-sprint without explicit user approval. If subagents cause permission prompts, fix `~/.claude/settings.json` (ensure `Bash(*)`, `Edit(*)`, `Write(*)` are in `permissions.allow`) — do NOT abandon the strategy.
 
-**Subagent permission pre-flight (run once at sprint start):**
-Verify `~/.claude/settings.json` has `Bash(*)`, `Edit(*)`, `Write(*)` in `permissions.allow`. Subagents do not inherit parent session approvals — missing global allows = permission prompts every task.
-
-**Progress ledger discipline:** Update `.superpowers/sdd/progress.md` after EVERY task completion, not just Task 1. Context compaction destroys in-memory state — the ledger is the only recovery map.
+**Progress ledger discipline:** Update `.superpowers/sdd/progress.md` after EVERY task completion. Context compaction destroys in-memory state — the ledger is the only recovery map.
 
 ### session-autopilot skill — context close audit (global skill)
 File: `~/.claude/skills/session-autopilot/SKILL.md`
