@@ -143,6 +143,8 @@ Self-check before every `Agent()` call: "Am I about to use `general-purpose`? If
 3. Controller dispatches `adversarial` subagent with: task brief + implementer report + review package + Codex findings
 4. `adversarial` subagent issues two verdicts: (1) spec compliance and (2) code quality
 
+**⚠️ TEMPLATE TRAP:** The SDD `implementer-prompt.md` template starts with `Subagent (general-purpose):` — this is a placeholder, NOT the correct value. Always replace it with the `subagent_type` from the routing table above. `Agent(model="sonnet")` with no `subagent_type` is equally wrong — it silently routes to general-purpose.
+
 **Parallel dispatch within SDD (non-negotiable):**  
 Before dispatching ANY implementer, scan ALL remaining tasks. Group every task with no file-overlap and no output-dependency into the same wave — dispatch the whole wave at once in a single message.
 
