@@ -134,8 +134,13 @@ Within `subagent-driven-development`, every implementer and reviewer must use th
 | Validation | `validate` | pytest / tsc / lint / build gate before commit |
 | Diagnostics | `analyst` | Read-only: logs, DB, test output, git history |
 | Research | `researcher` | Web research, primary sources, fact grounding |
+| Scraping | `scraper` | HTTP scrapers, browser automation, ASP.NET forms, anti-bot |
+| TS docs | `jsdoc` | TSDoc on every exported function in TypeScript files |
+| Security audit | `security-reviewer` | OWASP/secrets scan after auth, input, or secrets changes |
+| **Default fallback** | `drafter` | No exact match above → always use `drafter`, never `general-purpose` |
 
 Self-check before every `Agent()` call: "Am I about to use `general-purpose`? If yes, STOP — pick the correct expert from this table."
+Each `subagent_type` value must exactly match an agent filename in `~/.claude/agents/<name>.md` (no `.md` extension). If the name isn't in that directory, it doesn't exist — use `drafter` as fallback.
 
 **SDD review flow (non-negotiable):**
 1. Controller runs `Skill("codex:adversarial-review", "--wait")` in the main session immediately after the implementer commits
@@ -143,7 +148,7 @@ Self-check before every `Agent()` call: "Am I about to use `general-purpose`? If
 3. Controller dispatches `adversarial` subagent with: task brief + implementer report + review package + Codex findings
 4. `adversarial` subagent issues two verdicts: (1) spec compliance and (2) code quality
 
-**⚠️ TEMPLATE TRAP:** The SDD `implementer-prompt.md` template starts with `Subagent (general-purpose):` — this is a placeholder, NOT the correct value. Always replace it with the `subagent_type` from the routing table above. `Agent(model="sonnet")` with no `subagent_type` is equally wrong — it silently routes to general-purpose.
+**⚠️ TEMPLATE TRAP:** The SDD `implementer-prompt.md` template contains `[AGENT_TYPE]` — always replace it with the `subagent_type` from the routing table above. `Agent(model="sonnet")` with no `subagent_type` is equally wrong — it silently routes to general-purpose. **This CLAUDE.md is the authoritative routing source.** Plugin updates can overwrite `implementer-prompt.md` and silently restore a bad default — if in doubt, consult this table, not the template header.
 
 **Parallel dispatch within SDD (non-negotiable):**  
 Before dispatching ANY implementer, scan ALL remaining tasks. Group every task with no file-overlap and no output-dependency into the same wave — dispatch the whole wave at once in a single message.
