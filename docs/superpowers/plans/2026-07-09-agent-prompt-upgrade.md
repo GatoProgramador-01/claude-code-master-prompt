@@ -26,6 +26,20 @@
 
 ---
 
+## Plan Amendment — 2026-07-09 (executed before Task 0.0)
+
+`~/.claude/` is NOT a git repo — it contains 211MB of session transcripts and 13MB of downloaded plugins that must not be tracked. Initializing git there is high-risk.
+
+**Applies to all tasks below:** replace every `git worktree` / `git -C ~/.claude-agents-v2` command with plain filesystem operations. The staging directory `~/.claude-agents-v2/agents/` is a plain (non-git) directory throughout Waves 1-4. State tracking relies on:
+1. File existence in staging
+2. The `.superpowers/sdd/progress.md` ledger (master-prompt repo — this IS git)
+3. Wave 3.8 archive step: `mv` instead of `git mv`
+4. Wave 5.4 field-test swap: unchanged (`cp -r` already used)
+
+The Task 4.1 CLAUDE.md rewrite and Task 4.4 medium-agent-factory AGENTS.md rewrite still happen in their real git repos with normal `git add`/`commit`/`push`.
+
+---
+
 ## File Structure
 
 ```
@@ -125,50 +139,48 @@ grep -c "^─── Slot" ~/.claude-agents-v2/agents/<name>.md
 
 ---
 
-## Task 0.0: Bootstrap worktree + branch
+## Task 0.0: Bootstrap staging directory (plain `cp -r`, no git)
 
 **Files:**
-- Create: `~/.claude-agents-v2/` (git worktree)
-- Modify: `~/.claude/` git state (worktree registration)
+- Create: `~/.claude-agents-v2/agents/` (plain directory, non-git)
+- Read only: `~/.claude/agents/*.md`
 
 **Interfaces:**
-- Consumes: nothing
-- Produces: an isolated worktree at `~/.claude-agents-v2/` on branch `sprint/agent-cartridge-v2` where Waves 1-4 write
+- Consumes: current `~/.claude/agents/` contents
+- Produces: a working staging copy at `~/.claude-agents-v2/agents/` where Waves 1-4 write. State tracked via file existence + progress ledger, NOT git.
 
-- [ ] **Step 1: Verify ~/.claude/ is a git repo**
-
-```bash
-git -C ~/.claude status
-```
-
-Expected: `On branch main` or similar. If "not a git repository", stop and initialize: `git -C ~/.claude init && git -C ~/.claude add -A && git -C ~/.claude commit -m "chore: init before agent v2 sprint"`.
-
-- [ ] **Step 2: Create the worktree**
+- [ ] **Step 1: Verify source exists**
 
 ```bash
-git -C ~/.claude worktree add ~/.claude-agents-v2 -b sprint/agent-cartridge-v2
+ls ~/.claude/agents/*.md | wc -l
 ```
 
-Expected: `Preparing worktree ... HEAD is now at ...`. The worktree contains a full copy of `~/.claude/` on a new branch.
+Expected: 13-15 (roughly — current roster).
 
-- [ ] **Step 3: Confirm agents dir exists in the worktree**
+- [ ] **Step 2: Copy staging dir**
 
 ```bash
-ls ~/.claude-agents-v2/agents/ | head
+mkdir -p ~/.claude-agents-v2/agents
+cp -r ~/.claude/agents/*.md ~/.claude-agents-v2/agents/
 ```
 
-Expected: same 14 `.md` files as in `~/.claude/agents/`.
-
-- [ ] **Step 4: Commit an empty marker to prove the worktree pushes cleanly**
+- [ ] **Step 3: Confirm copy succeeded**
 
 ```bash
-touch ~/.claude-agents-v2/agents/.sprint-marker
-git -C ~/.claude-agents-v2 add agents/.sprint-marker
-git -C ~/.claude-agents-v2 commit -m "chore: agent-cartridge-v2 sprint start"
-git -C ~/.claude-agents-v2 push origin sprint/agent-cartridge-v2 2>/dev/null || echo "no remote — local worktree only, that is fine"
+diff -q <(ls ~/.claude/agents/*.md | xargs -n1 basename | sort) \
+        <(ls ~/.claude-agents-v2/agents/*.md | xargs -n1 basename | sort)
 ```
 
-Expected: commit succeeds. If no remote configured, that is fine — worktree is local-only for this sprint.
+Expected: no output (identical file lists).
+
+- [ ] **Step 4: Record marker**
+
+```bash
+date -u +"%Y-%m-%dT%H:%M:%SZ" > ~/.claude-agents-v2/agents/.sprint-marker
+echo "Task 0.0: staging bootstrapped at $(cat ~/.claude-agents-v2/agents/.sprint-marker)"
+```
+
+Progress-ledger entry (added by controller after completion): `Task 0.0: complete (staging seeded from ~/.claude/agents/, N files)`.
 
 ---
 
