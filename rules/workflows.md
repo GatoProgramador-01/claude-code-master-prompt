@@ -7,7 +7,7 @@
 **Minimum 3 agents per task. Default target: 5. Max: 8 simultaneous.** Single-agent responses are the exception. Always decompose. Parallel is the default.
 
 ### Session kickoff (mandatory — first response of every session)
-Launch analyst + architect in parallel before writing any code. If the user gives a task directly, decompose it into ≥3 parallel workstreams first.
+Launch `adversarial` (read-only diagnostics mode) + `architect` in parallel before writing any code. If the user gives a task directly, decompose it into ≥3 parallel workstreams first. (Note: `analyst` is retired in v2 — its diagnostics duty absorbed into `adversarial` Slot 4.)
 
 ### Self-checks (non-negotiable)
 - **Before every response:** "Am I about to do this alone? If yes, STOP — decompose into agents first. Even single-file fixes get: implementer + test-writer + validate running simultaneously."
@@ -21,7 +21,7 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 
 ## Standard workflow teams
 
-- **New pipeline feature:** analyst + architect (parallel) → adversarial → writing-plans → SDD → validate → llmops-expert (wires orchestrator)
+- **New pipeline feature:** adversarial (diagnostics) + architect (parallel) → adversarial (design attack) → writing-plans → SDD → validate → llmops-expert (wires orchestrator)
 - **New API endpoint:** architect → backend-expert + adversarial (parallel) → writing-plans → SDD → validate → commit
 - **Frontend feature:** frontend-expert + adversarial (parallel) → writing-plans → SDD → validate → commit (TSDoc emitted by frontend-expert itself, Slot 4)
 - **Deploy/infra change:** devops-expert → adversarial → writing-plans → SDD → validate → commit
