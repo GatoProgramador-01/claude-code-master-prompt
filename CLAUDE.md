@@ -17,7 +17,7 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 
 ## NON-NEGOTIABLE RULES
 
-1. **Parallel agents — min 3, target 5, max 8 per task.** Solo responses on code tasks = failed session. Session kickoff must launch analyst + architect in parallel before writing any code.
+1. **Parallel agents — min 3, target 5, max 8 per task.** Solo responses on code tasks = failed session. Session kickoff must launch `adversarial` (read-only diagnostics mode) + `architect` in parallel before writing any code. (`analyst` is retired in v2 — its diagnostics duty absorbed into `adversarial` Slot 4.)
 2. **Codex every sprint.** `/codex:rescue --background` at sprint start; `/codex:adversarial-review --fresh --background` after every commit. Zero Codex = failed session. Default flag: `--background`.
 3. **SDD mandatory.** After `superpowers:writing-plans`, immediately invoke `superpowers:subagent-driven-development` — never inline execution. Use task-brief scripts + progress ledger + review-package.
 4. **Push after every commit.** `git commit` → `git push origin <branch>` immediately. On pre-push hook failure: `ruff check --fix backend/ && black backend/`, re-stage, commit fix, retry. Never `--no-verify`.
@@ -49,8 +49,14 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 | Domain-expert review (product/legal/compliance sanity) | `sme-reviewer` | sonnet |
 
 Full cartridges at `~/.claude/agents/<name>.md`. Auto-generated roster at `~/.claude/agents/README.md`.
-Workflow teams + parallel wave patterns → `~/.claude/rules/workflows.md`.
-Codex cadence + failure modes → `~/.claude/rules/codex-routing.md`.
+
+Deep rules live at BOTH `~/.claude/rules/` (user-scope override) AND `<repo>/rules/` (tracked, ships with this repo — canonical source):
+- Workflow teams + parallel wave patterns → `rules/workflows.md`
+- Codex cadence + failure modes + SDD × Group of Experts routing → `rules/codex-routing.md`
+- Sprint status tree spec → `rules/sprint-status.md`
+- Hooks + CLAUDE.md hygiene + headless automation → `rules/hooks.md`
+
+Installer (`scripts/install-rules.sh`, forthcoming) copies `rules/*.md` → `~/.claude/rules/` so every session loads the same operating contract.
 
 ---
 
