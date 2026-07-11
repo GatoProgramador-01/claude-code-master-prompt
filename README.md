@@ -12,6 +12,20 @@
 
 ---
 
+## Metrics at a Glance
+
+| Metric | Value | As of |
+|--------|-------|-------|
+| Total commits | 147 | 2026-07-08 |
+| Commits this week (2026-06-29 → 2026-07-08) | 18 | — |
+| Lines inserted this week | 2,216+ across 21 files | — |
+| CLAUDE.md length | 383 lines | 2026-07-08 |
+| Specialized agents | 14 | commit [4cf936e](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4cf936e) |
+| Domain rule files (lazy-loaded) | 5 | — |
+| Skills | 1 (session-autopilot) | commit [1a35b26](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/1a35b26) |
+
+---
+
 ## What This Is
 
 This repository is the `CLAUDE.md` + `agents/` + `rules/` bundle that acts as a persistent system prompt for every Claude Code session. Installed at `~/CLAUDE.md`, `~/.claude/agents/`, and `~/.claude/rules/`, Claude Code loads it automatically — turning every session into one that behaves like a senior tech lead with a full supporting team.
@@ -19,6 +33,33 @@ This repository is the `CLAUDE.md` + `agents/` + `rules/` bundle that acts as a 
 Every rule was written in response to a specific, documented production failure: tests that passed locally and crashed Docker, Terraform configs that failed `validate` before a single resource was created, LangGraph agents that broke on 3% of production traffic.
 
 The current version is **cartridge-v2**: a thin 107-line router `CLAUDE.md`, thirteen specialized agent cartridges with a 10-slot template + 3-shot positive exemplars, four rules files tracked in-repo and installed via `scripts/install-rules.sh`, and a 24-case meta-eval dataset that scores every cartridge on slot coverage + correctness + cost.
+
+---
+
+## Changelog — Recent Changes (2026-06-29 → 2026-07-08)
+
+18 commits, 2,216+ lines inserted across 21 files. Each entry links directly to its commit.
+
+| Date | Commit | What Changed |
+|------|--------|-------------|
+| 2026-07-08 | [76c5e8c](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/76c5e8c) | Hard ban on `general-purpose` in SDD dispatch — self-check added before every `Agent()` call; routing table is the only valid source for `subagent_type` |
+| 2026-07-07 | [274237a](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/274237a) | Codex adversarial-review wired into SDD two-step review loop — controller runs `codex:adversarial-review --wait` after every implementer commit, passes findings to `adversarial` subagent; README rewritten (161 lines changed) |
+| 2026-07-07 | [6a8f691](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/6a8f691) | Push after every commit rule — every `git commit` is immediately followed by `git push`; pre-push hook failure triggers `ruff check --fix && black`, re-stage, then retry; `--no-verify` forbidden |
+| 2026-07-07 | [46a79e2](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/46a79e2) | Mandatory parallel wave dispatch — controller must scan ALL remaining tasks before firing any; reviewer N and implementer N+1 dispatch in the same message when files don't overlap |
+| 2026-07-07 | [4607c83](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4607c83) | SDD mandated over inline execution — `superpowers:subagent-driven-development` is the only option; inline code writing removed as alternative |
+| 2026-07-07 | [0057c01](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/0057c01) | Fix: SDD reviewer role corrected to `adversarial` (was `analyst`) — confirmed from production session 2026-07-06 |
+| 2026-07-06 | [bec2dc8](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/bec2dc8) | SDD × Group of Experts per-task routing table — maps each implementer task to the correct `subagent_type`: `drafter`, `llmops-expert`, `backend-expert`, `frontend-expert`, `devops-expert`, `prompt-engineer`, `eval-writer` |
+| 2026-07-05 | [90a4f10](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/90a4f10) | SDD mandatory every sprint — `superpowers:subagent-driven-development` now fires after every `writing-plans` call, before any code is written; cannot be skipped |
+| 2026-07-05 | [18eaf58](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/18eaf58) | Memory: SDD mandatory feedback rule — persisted to session memory so future sessions inherit the constraint without re-learning it |
+| 2026-07-04 | [c8075ce](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/c8075ce) | Execution strategy commitment — once subagent-driven is chosen, no mid-sprint switch to inline; permission prompt failures fixed in `~/.claude/settings.json`, not by changing strategy |
+| 2026-07-04 | [e69f307](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/e69f307) | Auto-compact policy threshold changed to 50% — triggers `/compact Focus on <project> Sprint <N> — <next task>` when context reaches 50% (was 70%) |
+| 2026-07-03 | [4f10374](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4f10374) | Group of Experts v2 — `agents/` directory added with 14 individual `.md` agent files; each has a model tier (haiku/sonnet) and a domain; Architect routes, never codes |
+| 2026-07-03 | [1a35b26](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/1a35b26) | Session-autopilot skill (201-line SKILL.md) — auto-triggers at ≥50% context; runs 3 parallel haiku agents (session analyst, token auditor, error auditor); writes to MongoDB `session_logs` collection; prints sprint status tree |
+| 2026-07-03 | [6c3d80d](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/6c3d80d) | Quick Start orientation block added — `git log --oneline -3`, `git status`, `python -m pytest tests/ -q` run before any code; session-autopilot improvements |
+| 2026-07-03 | [128d70b](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/128d70b) | Codex cadence enforced — failure-mode catalogue added: "declaring sprint done without Codex = silent regressions"; self-check rule: "Did I run Codex this sprint? No = incomplete sprint" |
+| 2026-07-03 | [d2f29ab](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/d2f29ab) | Parallel Wave pattern added for bulk audit+wire sprints — Wave 1: N adversarial read-only agents; Wave 2: N RED test writers; Wave 3: N implementers on conflict-free files; Wave 4: validate + integrator; max 5 agents per wave |
+| 2026-06-30 | [91f74ba](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/91f74ba) | Sprint status tree standardized — 3 fixed metadata rows (🤖 agentes, 🧠 skills, 📊 metrics) always present; 😸 header emoji once only; Codex always last row |
+| 2026-06-29 | [4cf936e](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4cf936e) | Group of Experts system launched — 14 specialized agents replacing the monolithic CLAUDE.md approach; compact policy with context thresholds added |
 
 ---
 
