@@ -1,0 +1,243 @@
+## Session Handoff — Master Prompt Documentation Sprint
+Date: 2026-07-13
+Repo: C:\Users\lanitaEmperadora\Documents\github\claude-code-master-prompt
+Goal: Every file the repo_analyzer reads becomes a clear, accurate, human-readable
+      account of what this multi-agent system does, how it performs, and what it costs.
+      A user reading the README should understand the full system without reading code.
+
+---
+
+### Why this sprint exists
+
+The repo_analyzer (after the medium-agent-factory Bug 2 fix) will index:
+  README.md, agents/*.md, rules/*.md, skills/*/SKILL.md, scripts/*.sh
+
+Right now those files have three problems:
+
+1. STALE — README.md still says "SDD mandatory", "14 agents", "1 skill".
+   The parallel-executor sprint (2026-07-13, PR #1) changed all of this.
+   A reader — human or pipeline — gets wrong facts.
+
+2. MACHINE-ONLY — agent cartridges are written as control instructions for
+   Claude, not as documentation a person can read to understand the system.
+   There is no section that says "here is what this system does for you and
+   here is how fast / cheap it is."
+
+3. MISSING SKILLS NARRATIVE — parallel-executor and session-autopilot exist
+   but the README has no Skills section. A user can't discover them without
+   reading the raw SKILL.md files.
+
+---
+
+### Files and their current problems
+
+README.md (400 lines) — primary grounding document
+  Stale content (must fix):
+  - Key Features: "Superpowers SDD fires immediately after writing-plans" → parallel-executor
+  - Key Features: "13-agent Group of Experts (v2)" description still references SDD in detail
+  - Standard workflow teams table: every row ends with "→ SDD → validate"
+  - "SDD × Group of Experts Integration" section header and all content
+  - "SDD review flow" 6-step block → needs to be "parallel-executor review flow"
+  - "Parallel dispatch rule" still attributes to SDD controller
+  - Sprint status tree example: "subagent-driven-development" in 🧠 skills row
+  - Sprint History: missing 2026-07-13 parallel-executor + lain-specialist cleanup entry
+  - Metrics table: "Skills: 1" → 2, date "2026-07-08" → 2026-07-13, commits stale
+  Missing content (must add):
+  - Skills section: parallel-executor + session-autopilot with trigger conditions
+  - Productivity Gains section: measured real results, before/after comparisons
+  - "What the system does for you" — the user-facing capability summary
+
+agents/README.md (105 lines) — auto-generated roster
+  Stale content:
+  - drafter row: "SDD fallback" → "parallel-executor fallback"
+  - Descriptions section has no SDD refs — OK
+  - Wave column still references "Task 3.6, SDD fallback" → just "fallback implementer"
+  Note: regenerate with scripts/gen_agents_readme.py AFTER any cartridge changes.
+  But gen_agents_readme.py reads frontmatter from ~/.claude/agents/*.md (live path),
+  so run it only if live agents were updated. For content changes only, edit in-place.
+
+agents/*.md (13 files) — individual cartridges
+  These are Claude control instructions, not user documentation.
+  They do NOT need to be rewritten — they serve their purpose.
+  Only two targeted fixes needed:
+  - drafter.md: frontmatter description says "SDD default-fallback" → update to
+    "parallel-executor default-fallback implementer"
+  - Any remaining "subagent-driven-development" mentions → parallel-executor
+  Run: grep -r "subagent-driven-development\|SDD" agents/*.md to find them.
+
+rules/codex-routing.md (78 lines)
+  Check: does it still say "SDD × Codex routing"? The section header is
+  "SDD × Codex per-task routing" — rename to "parallel-executor × Codex per-task routing"
+  Check: does the routing table reference "superpowers:subagent-driven-development"?
+  Fix those references → parallel-executor.
+  The rest (failure modes, Codex cadence) is accurate and stays.
+
+rules/workflows.md (113 lines) — already updated this session ✅
+  No changes needed.
+
+rules/sprint-status.md (48 lines)
+  Check: does it reference SDD in the skills row example? If yes, update.
+  The format spec itself is stable — cat emoji legend, row order. Probably OK.
+
+rules/hooks.md (68 lines)
+  No SDD references expected. Verify, no changes likely.
+
+skills/parallel-executor/SKILL.md (230 lines)
+  Content is accurate (written this session).
+  Missing: concrete metrics a user/pipeline can read as grounding facts.
+  Add to the Key Difference vs SDD table OR to a new Metrics section:
+    "Measured on 2026-07-13 session: 3-task sprint (parallel-executor) completed
+     in ~10 min vs ~34 min sequential (SDD). Root cause: SDD 'Never parallelize'
+     rule. Fix: wave analysis + simultaneous Agent() dispatch."
+  Add to description frontmatter: include the "34 min → 10 min" fact.
+
+skills/session-autopilot/SKILL.md (201 lines)
+  Check for SDD references in trigger conditions or step descriptions.
+  Add one-line metrics note: fires at ≥50% context, writes session_logs to MongoDB,
+  parallel 3-agent audit (session analyst + token auditor + error auditor).
+
+---
+
+### Productivity Gains section to add to README.md
+
+This is the key deliverable — the user wants to read what the system does.
+Write a new ## Productivity section with this structure:
+
+  ### Sprint execution speed
+  | Approach                  | 3-task sprint (no file overlap) | Why |
+  |---------------------------|----------------------------------|-----|
+  | Sequential (SDD, pre-fix) | ~34 min                          | One implementer at a time; idle timeouts; sequential reviewer wait |
+  | Wave-parallel (current)   | ~10 min                          | All 3 implementers fire in one message; reviewers fire simultaneously |
+  Source: measured on 2026-07-13 session (claude-code-master-prompt, PR #1)
+
+  ### Content pipeline quality (medium-agent-factory dogfood)
+  | Run date   | Topic                                 | Score | Boost eligible | Revisions |
+  |------------|---------------------------------------|-------|----------------|-----------|
+  | 2026-06-17 | DeepSeek series (3 posts)             | 0.96–1.0 | ✅ all 3    | —         |
+  | 2026-07-13 | parallel-executor fix post            | 0.93  | ✅             | 3         |
+  Pipeline: research → fact-check → 9-axis G-Eval → revision loop (max 3 cycles)
+
+  ### Cost routing
+  | Task type                       | Agent     | Model  | Relative cost |
+  |---------------------------------|-----------|--------|---------------|
+  | Read / search / lint / format   | validate, drafter | haiku  | 1×  |
+  | Write / review / multi-file     | all others | sonnet | ~10×          |
+  | Architecture tradeoffs only     | architect | opus   | ~40×          |
+  Haiku routes: pre-commit gates, simple formatters, fallback drafts.
+  Sonnet routes: everything that generates or reviews code.
+  Opus: reserved for cross-cutting architecture decisions (rare).
+
+  ### Token efficiency
+  | Change                          | Before     | After       |
+  |---------------------------------|------------|-------------|
+  | CLAUDE.md lazy-loading          | 1,300 lines loaded every session | 107 lines + on-demand rules |
+  | Verbose Bash output compression | 8,000 line CI logs in context | grep -E errors head-200 |
+  | Sub-agent context isolation     | Full session context per agent | Agent gets only its task brief |
+
+  ### Meta-eval scores
+  - 24-case dataset scoring 3 agent types (llmops-expert, backend-expert, architect)
+  - Rubric: 30% slot coverage · 50% correctness · 20% cost efficiency
+  - Pass threshold: 0.80 · Current: all 3 agents above threshold (25/25 rubric tests passing)
+
+---
+
+### Task breakdown — use parallel-executor
+
+Wave 1 — parallel (3 agents, no file overlap):
+
+  Task 1: README.md full update
+    Agent: drafter
+    Files: README.md
+    Scope:
+      1. Fix all SDD references → parallel-executor (Key Features, workflow teams,
+         SDD × GoE Integration section rename + content, review flow, dispatch rule,
+         sprint status tree example)
+      2. Update Metrics table: 13 agents, 2 skills, date 2026-07-13
+      3. Add Sprint History row for 2026-07-13 (parallel-executor + lain-specialist)
+      4. Add ## Skills section after ## The Group of Experts section:
+           parallel-executor — trigger: after writing-plans; what it does; 34 min → 10 min
+           session-autopilot — trigger: ≥50% context; what it does; MongoDB session_logs
+      5. Add ## Productivity section (use the tables above verbatim as the base)
+      6. Rename "SDD × Group of Experts Integration" → "parallel-executor × Group of Experts"
+    Do NOT change: Stack Coverage, What It Prevents, Codex cadence, Cartridge-v2 Template,
+    Meta-Eval Infrastructure, How to Use (install steps), Rollback, Sprint History older entries.
+    After writing: verify no remaining "subagent-driven-development" or "SDD mandatory" strings.
+
+  Task 2: agents/*.md targeted fixes + agents/README.md
+    Agent: drafter
+    Files: agents/drafter.md, agents/README.md, any agent with SDD refs found by grep
+    Scope:
+      1. Run: grep -r "subagent-driven-development\|SDD" agents/*.md → list findings
+      2. Replace all "SDD fallback" → "parallel-executor fallback" in drafter.md
+      3. Fix agents/README.md drafter row: "Task 3.6, SDD fallback" → "fallback implementer"
+      4. Do NOT change any other agent cartridge content — they are control instructions,
+         not user docs, and are stable.
+
+  Task 3: rules/codex-routing.md + skills/*.md
+    Agent: drafter
+    Files: rules/codex-routing.md, skills/parallel-executor/SKILL.md,
+           skills/session-autopilot/SKILL.md, rules/sprint-status.md
+    Scope:
+      1. codex-routing.md: rename "SDD × Codex per-task routing" header → "parallel-executor × Codex"
+         Fix any "superpowers:subagent-driven-development" references in the routing table.
+      2. skills/parallel-executor/SKILL.md: add to the "Key Difference vs SDD" section
+         a Metrics row: "Measured: 3-task sprint 34 min → ~10 min (2026-07-13)"
+         Update description frontmatter to include the 34 min → 10 min fact.
+      3. skills/session-autopilot/SKILL.md: grep for SDD refs, fix if found.
+         Add one-line metrics note near the top of the skill content.
+      4. rules/sprint-status.md: grep for SDD refs, fix if found. Probably clean.
+
+Wave 2 — sequential (depends on Wave 1 completing):
+
+  Task 4: Final verification pass
+    Agent: adversarial (read-only)
+    Scope:
+      1. grep -r "subagent-driven-development\|SDD mandatory\|SDD fires" . --include="*.md"
+         → must return zero matches (rules/codex-routing.md header rename counts as fixed)
+      2. Verify README.md Metrics table has correct values:
+         "Specialized agents: 13" (not 14)
+         "Skills: 2" (not 1)
+         "Date: 2026-07-13"
+      3. Verify README.md has ## Skills section
+      4. Verify README.md has ## Productivity section
+      5. Report: list of any remaining stale references or missing sections
+
+  Task 5: Commit + push
+    After adversarial gives APPROVED:
+    git add README.md agents/README.md agents/drafter.md rules/codex-routing.md
+            skills/parallel-executor/SKILL.md skills/session-autopilot/SKILL.md
+    git commit -m "docs: master-prompt documentation sprint — fix stale SDD refs,
+    add Skills + Productivity sections, update metrics to 2026-07-13 state"
+    git push origin main
+
+---
+
+### Gitflow note
+
+This sprint is documentation-only in master-prompt repo.
+Since all changes are docs (no code, no agents that break if wrong), this can land
+directly on main via a feat/* branch as usual, but the risk is near zero.
+
+  cd C:\Users\lanitaEmperadora\Documents\github\claude-code-master-prompt
+  git checkout main && git pull origin main
+  Skill("gitflow", "open master-prompt-docs")
+  → run parallel-executor Wave 1 (3 agents)
+  → Wave 2 adversarial review
+  Skill("gitflow", "close")
+
+---
+
+### Success criteria
+
+After this sprint, a user reading README.md should be able to answer:
+  1. What does this system do? (Productivity section + Key Features)
+  2. What are the 13 agents and what does each one do? (Group of Experts table)
+  3. What are the 2 skills and when do they trigger? (new Skills section)
+  4. How fast are sprints now vs before? (Productivity table: 34 min → 10 min)
+  5. What does it cost? (Cost routing table)
+  6. How do I install it? (How to Use section — already good)
+  7. What production failures does it prevent? (What It Prevents — already good)
+
+After this sprint, the repo_analyzer indexing agents/*.md, rules/*.md, skills/*.md
+should find zero stale SDD references that could cause the fact-checker to flag
+internal claims as unverifiable.
