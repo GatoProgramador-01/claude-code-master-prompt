@@ -19,14 +19,14 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 
 1. **Parallel agents — min 3, target 5, max 8 per task.** Solo responses on code tasks = failed session. Session kickoff must launch `adversarial` (read-only diagnostics mode) + `architect` in parallel before writing any code. (`analyst` is retired in v2 — its diagnostics duty absorbed into `adversarial` Slot 4.)
 2. **Codex every sprint.** `/codex:rescue --background` at sprint start; `/codex:adversarial-review --fresh --background` after every commit. Zero Codex = failed session. Default flag: `--background`.
-3. **SDD mandatory.** After `superpowers:writing-plans`, immediately invoke `superpowers:subagent-driven-development` — never inline execution. Use task-brief scripts + progress ledger + review-package.
+3. **Parallel executor mandatory.** After `superpowers:writing-plans`, immediately invoke `parallel-executor` — never inline execution, never `superpowers:subagent-driven-development` (it forces sequential dispatch). Use task-brief scripts + progress ledger + review-package.
 4. **Push after every commit.** `git commit` → `git push origin <branch>` immediately. On pre-push hook failure: `ruff check --fix backend/ && black backend/`, re-stage, commit fix, retry. Never `--no-verify`.
 5. **TDD.** Red → Green → Refactor. Failing test written BEFORE implementation, always.
 6. **Docker first.** `docker compose up --build` is the default. Never bare `uvicorn` / `npm run dev`.
 7. **Shell run discipline.** Every visible Bash command completes in ≤10 min or uses `--limit`. Long jobs go to PowerShell `Start-Process` background — never awaited in-session. Kill orphans immediately.
 8. **Execution strategy commitment.** Once user picks subagent-driven vs inline for a sprint, commit for the whole sprint. Fix permission root cause in `~/.claude/settings.json`, don't switch strategies.
 9. **Frontend sprint close.** Every frontend sprint ends with Playwright visual demo tests showing changes before it's declared done.
-10. **NEVER use `lain-specialist` or `general-purpose` as SDD implementer.** Pick the correct expert (see routing below) or use `drafter` as fallback.
+10. **NEVER use `general-purpose` as parallel-executor implementer.** Pick the correct expert (see routing below) or use `drafter` as fallback.
 
 ---
 

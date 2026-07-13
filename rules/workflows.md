@@ -11,7 +11,7 @@ Launch `adversarial` (read-only diagnostics mode) + `architect` in parallel befo
 
 ### Self-checks (non-negotiable)
 - **Before every response:** "Am I about to do this alone? If yes, STOP — decompose into agents first. Even single-file fixes get: implementer + test-writer + validate running simultaneously."
-- **Before every SDD dispatch:** "Am I dispatching ONE agent when I could dispatch THREE? Scan all remaining tasks. If 3 are independent, all 3 fire NOW."
+- **Before every wave dispatch:** "Am I dispatching ONE agent when I could dispatch THREE? Scan all remaining tasks. If 3 are independent, all 3 fire in the same wave NOW."
 
 Visible parallel activity (multiple agents running simultaneously) is a hard requirement, not a style preference.
 
@@ -21,10 +21,10 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 
 ## Standard workflow teams
 
-- **New pipeline feature:** adversarial (diagnostics) + architect (parallel) → adversarial (design attack) → writing-plans → SDD → validate → llmops-expert (wires orchestrator)
-- **New API endpoint:** architect → backend-expert + adversarial (parallel) → writing-plans → SDD → validate → commit
-- **Frontend feature:** frontend-expert + adversarial (parallel) → writing-plans → SDD → validate → commit (TSDoc emitted by frontend-expert itself, Slot 4)
-- **Deploy/infra change:** devops-expert → adversarial → writing-plans → SDD → validate → commit
+- **New pipeline feature:** adversarial (diagnostics) + architect (parallel) → adversarial (design attack) → writing-plans → parallel-executor → validate → llmops-expert (wires orchestrator)
+- **New API endpoint:** architect → backend-expert + adversarial (parallel) → writing-plans → parallel-executor → validate → commit
+- **Frontend feature:** frontend-expert + adversarial (parallel) → writing-plans → parallel-executor → validate → commit (TSDoc emitted by frontend-expert itself, Slot 4)
+- **Deploy/infra change:** devops-expert → adversarial → writing-plans → parallel-executor → validate → commit
 - **Research-backed post:** researcher (grounding) → architect (topic string) → pipeline run
 - **Debug failing test:** adversarial (read-only diagnostics) + adversarial (blind hypothesis) → validate fix
 - **Full-stack feature:** frontend-expert + backend-expert + adversarial (all parallel) → writing-plans → SDD → validate → llmops-expert (integration)
@@ -56,21 +56,21 @@ Documentation track:
 **State-key conflict resolution:** if Wave 1 reveals two nodes write the same key, wire them sequentially in Wave 4 — don't block the whole wave.
 **Max parallel agents per wave:** 5 (model cost cap). Split into sub-waves if N > 5.
 
-## Parallel dispatch within SDD (non-negotiable)
+## Parallel dispatch — wave rules (non-negotiable)
 
-Before dispatching ANY implementer, scan ALL remaining tasks. Group every task with no file-overlap and no output-dependency into the same wave — dispatch the whole wave at once in a single message.
+Before dispatching ANY implementer, `parallel-executor` scans ALL remaining tasks and groups by file overlap into waves. All implementers in a wave fire simultaneously in one message.
 
 Two mandatory patterns:
 
-1. **Multi-task parallel wave:** if Tasks 2, 3, 4 touch different files and have no "prerequisite" note, fire all three implementers in one message.
-2. **Reviewer + next implementer overlap:** when implementer N finishes, dispatch reviewer N AND implementer N+1 in the same message if N+1 doesn't write any file Task N wrote.
+1. **Multi-task parallel wave:** Tasks 2, 3, 4 touch different files and have no "prerequisite" → all fire in one message, same wave.
+2. **Reviewer + next wave overlap:** when Wave N implementers finish, Wave N reviewers AND Wave N+1 implementers fire simultaneously if Wave N+1 has no file overlap with Wave N.
 
 Sequential ONLY when: (a) task brief explicitly says "prerequisite: Task N", or (b) two tasks write the same file.
 
 ## Skill triggers — mandatory in-session
 
 - **Any sprint start** → `/codex:rescue --background` fires immediately, before Claude writes a line
-- **Any sprint start** → `superpowers:subagent-driven-development` fires after `writing-plans`, before any code is written. Always choose subagent-driven — inline execution is not an option.
+- **Any sprint start** → `parallel-executor` fires after `writing-plans`, before any code is written. Never use `superpowers:subagent-driven-development` — it forces sequential dispatch and overrides wave-parallel rules.
 - **Any commit** → `/codex:adversarial-review --fresh --background` fires before declaring sprint done
 - **Context ≥ 50%** → `session-autopilot` fires — writes MongoDB `session_logs` + prints sprint status tree + recommends `/compact` focus
 
@@ -85,7 +85,7 @@ Claude invokes these automatically — user never types them:
 - `superpowers:brainstorming` — any new feature/build task, BEFORE architect decomposes
 - `superpowers:systematic-debugging` — any bug/test failure, BEFORE proposing fixes
 - `superpowers:writing-plans` — multi-sprint feature with a spec, BEFORE touching code
-- `superpowers:subagent-driven-development` — MANDATORY every sprint, immediately after `writing-plans`, before any code is written — use the ACTUAL skill (task-brief scripts, progress ledger, review-package) — do NOT manually launch raw `Agent()` calls as a substitute
+- `parallel-executor` — MANDATORY every sprint, immediately after `writing-plans`, before any code is written — fires all independent tasks simultaneously per wave, reuses SDD scripts (task-brief, review-package, progress ledger) — do NOT use `superpowers:subagent-driven-development` (it forces sequential dispatch)
 - `superpowers:executing-plans` — resuming from a written plan across sessions
 - `superpowers:test-driven-development` — BEFORE writing implementation code
 - `superpowers:verification-before-completion` — BEFORE claiming any work done or committing
