@@ -1,0 +1,132 @@
+## Session Handoff — medium-agent-factory Pipeline Bugs Sprint
+Date: 2026-07-13
+Working dir: C:\Users\lanitaEmperadora\medium-agent-factory\backend
+
+---
+
+### Bug 1 — Grounding checker silently broken (HIGH)
+
+File: backend/app/agents/fact_checker.py, function _check_claim_against_grounding (~line 190)
+
+Root cause: Anthropic's API requires the word "json" to appear somewhere in the
+prompt when with_structured_output uses json_object mode. The prompt currently
+does not contain it, so every grounding check throws a 400 error and returns
+False (fail-open). The fact-checker cannot verify any internal claims.
+
+Evidence from dogfood run (run_id: 482cc87f-f5d7-4f9a-9375-1c7724961a27):
+  "Grounding check failed for claim '3-task sprint should have taken 10 minutes.
+   It took 34.': Error code: 400 - Prompt must contain the word 'json' in some
+   form to use 'response_format' of type 'json_object'."
+  (repeated for every claim — all grounding checks failed)
+
+Fix: add "Respond in JSON." to the prompt string at line ~193.
+
+Current prompt (lines 190-195):
+    prompt = (
+        "Is the following claim directly supported by, or reasonably derivable from, "
+        "the grounding context below?\n\n"
+        f"Claim: {claim}\n\n"
+        f"Grounding context:\n{grounding_context[:3000]}"
+    )
+
+Fixed prompt:
+    prompt = (
+        "Is the following claim directly supported by, or reasonably derivable from, "
+        "the grounding context below? Respond in JSON.\n\n"
+        f"Claim: {claim}\n\n"
+        f"Grounding context:\n{grounding_context[:3000]}"
+    )
+
+Also add a regression test: tests/test_fact_checker.py should assert that
+_check_claim_against_grounding is called with a prompt containing "json".
+
+---
+
+### Bug 2 — repo_analyzer misses agents/, rules/, skills/ paths (MEDIUM)
+
+File: backend/app/agents/repo_analyzer.py, function _read_priority_texts (~line 166)
+
+Root cause: _read_priority_texts only indexes files whose path contains
+"test", "script", "src/", or "app/". For the master-prompt repo
+(https://github.com/GatoProgramador-01/claude-code-master-prompt), that means
+only README.md + scripts/*.sh are read. All 13 agent cartridges (agents/*.md),
+4 rules files (rules/*.md), and 2 skills (skills/*/SKILL.md) are invisible
+to the grounding synthesis — the richest content in the repo never reaches
+the fact-checker.
+
+Evidence: dogfood run showed "grounding_synthesis_skipped because repo context
+was already sufficient from research" — meaning the evidence_brief was too thin
+to trigger synthesis.
+
+Fix: extend the path-matching tuple in _read_priority_texts.
+
+Current (~line 166):
+    or any(part in rel.lower() for part in ("test", "script", "src/", "app/"))
+
+Fixed:
+    or any(part in rel.lower() for part in ("test", "script", "src/", "app/", "agents/", "rules/", "skills/"))
+
+Also update tests/test_repo_analyzer.py: add an assertion that when analyzing
+a mock repo dir containing agents/architect.md and rules/workflows.md, both
+files appear in the priority texts dict.
+
+---
+
+### Task breakdown (3 tasks, Wave 1 all parallel — different files)
+
+Wave 1 — parallel:
+  Task 1: Fix grounding checker json bug
+    Files: app/agents/fact_checker.py, tests/test_fact_checker.py
+    Agent: backend-expert
+    Change: add "Respond in JSON." to prompt in _check_claim_against_grounding
+    Test: pytest tests/test_fact_checker.py
+
+  Task 2: Fix repo_analyzer priority filter
+    Files: app/agents/repo_analyzer.py, tests/test_repo_analyzer.py
+    Agent: backend-expert
+    Change: add "agents/", "rules/", "skills/" to path-matching tuple
+    Test: pytest tests/test_repo_analyzer.py
+
+Wave 2 — sequential (depends on both fixes landing):
+  Task 3: Re-run dogfood validation
+    Command (from backend/):
+      python -c "
+      import asyncio, sys; sys.path.insert(0, '.')
+      from app.agents.orchestrator import run_pipeline
+      result = asyncio.run(run_pipeline(
+          custom_topic='How we fixed the Claude Code multi-agent sprint system to run parallel tasks — root cause, fix, and measured results',
+          repo_path='C:/Users/lanitaEmperadora/Documents/github/claude-code-master-prompt',
+          source_urls=['https://github.com/GatoProgramador-01/claude-code-master-prompt'],
+      ))
+      print('score:', result['quality_score'])
+      print('boost:', result.get('medium_boost_eligible'))
+      print('revisions:', result.get('revision_count'))
+      "
+    Success criteria:
+      - quality_score >= 0.90
+      - boost_eligible = True
+      - NO "Grounding check failed" errors in output (Bug 1 fixed)
+      - grounding_synthesis fires (not skipped) — Bug 2 fixed means agents/ indexed
+
+---
+
+### Baseline from this session's dogfood run
+
+  run_id:        482cc87f-f5d7-4f9a-9375-1c7724961a27
+  quality_score: 0.93
+  boost_eligible: True
+  revisions:     3
+  word_count:    1527
+  grounding:     all checks failed (Bug 1), only README.md indexed (Bug 2)
+
+After fixes, expect: same score or higher, grounding_synthesis active,
+0 grounding check errors.
+
+---
+
+### Reminder: gitflow open before starting
+
+  cd C:\Users\lanitaEmperadora\medium-agent-factory
+  git checkout main && git pull origin main
+  Then: Skill("gitflow", "open grounding-pipeline-bugs")
+  Working dir for all tasks: backend/
