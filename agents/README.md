@@ -103,4 +103,3 @@ Every cartridge follows the shared template documented in `docs/superpowers/spec
 - `security-reviewer` → merged into `adversarial` Slot 4 (OWASP + secrets scan)
 - `jsdoc` → merged into `frontend-expert` Slot 4 (TSDoc emission pattern)
 - `integrator` → merged into `llmops-expert` Slot 4 (orchestrator.py wiring pattern)
-- `lain-specialist` → retired per memory feedback (never use)
