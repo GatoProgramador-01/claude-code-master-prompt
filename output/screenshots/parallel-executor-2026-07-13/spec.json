@@ -4,95 +4,361 @@
     {
       "filename": "01-wave-dispatch-pr-merge.png",
       "title": "bash — claude-code-master-prompt sprint",
+      "image_type": "reconstructed_terminal_summary",
       "lines": [
-        {"text": "Sprint — master-prompt-docs", "color": "white"},
+        {
+          "text": "😸 Sprint — master-prompt-docs — DONE",
+          "color": "white",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "  agentes  — 3 parallel (drafter x drafter x drafter)", "color": "cyan"},
-        {"text": "  skills   — gitflow open → parallel-executor → adversarial → gitflow close", "color": "blue"},
-        {"text": "  metrics  — 9 files · 105 insertions / 44 deletions · PR #2 merged to main", "color": "yellow"},
+        {
+          "text": "├── 🤖 agentes  — 3 parallel (drafter·drafter·drafter) + 1 adversarial",
+          "color": "cyan",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "├── 🧠 skills   — gitflow open → parallel-executor → adversarial → gitflow close",
+          "color": "blue",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "├── 📊 metrics  — 9 files · 105 insertions / 44 deletions · PR #2 merged",
+          "color": "yellow",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "  README.md           — SDD→parallel-executor, +Skills, +Productivity, metrics 2026-07-13", "color": "green"},
-        {"text": "  agents/drafter.md   — parallel-executor default-fallback terminology", "color": "green"},
-        {"text": "  rules/codex-routing.md — all SDD headers + routing table refs updated", "color": "green"},
-        {"text": "  skills/parallel-executor — 34 min→10 min fact in frontmatter + Key Difference", "color": "green"},
-        {"text": "  memory/feedback_sdd_mandatory.md — rewritten: SDD banned, parallel-executor", "color": "green"},
-        {"text": "  Codex (bg)  — adversarial: 5 issues found + resolved before commit", "color": "lavender"},
+        {
+          "text": "├── ✅ README.md           — SDD→parallel-executor, +Skills, +Productivity sections",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "├── ✅ agents/drafter.md   — parallel-executor default-fallback terminology",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "├── ✅ rules/codex-routing.md — all SDD headers + routing table refs updated",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "├── ✅ skills/parallel-executor — 34 min→10 min fact in frontmatter + Key Difference",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "├── ✅ memory/feedback_sdd_mandatory.md — rewritten: SDD banned, parallel-executor",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "└── 🔍 Codex (bg)  — adversarial: 5 issues found + resolved before commit",
+          "color": "lavender",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "$ gh pr merge feat/master-prompt-docs --merge --admin --delete-branch", "color": "muted"},
-        {"text": "", "color": ""},
-        {"text": "Updating 1e10b6b..0fa38bb  Fast-forward", "color": "cyan"},
-        {"text": " README.md                         | 91 ++++++++++++++++++----", "color": "green"},
-        {"text": " rules/codex-routing.md            | 18 ++---", "color": "green"},
-        {"text": " skills/parallel-executor/SKILL.md | 16 ++--", "color": "green"},
-        {"text": " memory/feedback_sdd_mandatory.md  | 10 +--", "color": "green"},
-        {"text": " 9 files changed, 105 insertions(+), 44 deletions(-)", "color": "green"},
-        {"text": "", "color": ""},
-        {"text": "feat/master-prompt-docs merged to main. Branch deleted.", "color": "green"}
+        {
+          "text": "$ gh pr merge feat/master-prompt-docs --merge --admin --delete-branch",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "9 files changed, 105 insertions(+), 44 deletions(-)",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "feat/master-prompt-docs merged to main. Branch deleted.",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        }
       ]
     },
     {
       "filename": "02-adversarial-review-approved.png",
       "title": "bash — adversarial review gate",
+      "image_type": "reconstructed_terminal_summary",
       "lines": [
-        {"text": "Adversarial Review — master-prompt-docs Sprint", "color": "white"},
+        {
+          "text": "Adversarial Review — master-prompt-docs Sprint",
+          "color": "white",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "FAIL [HIGH]   memory/feedback_sdd_mandatory.md:3,7,11", "color": "red"},
-        {"text": "  Active memory card instructs superpowers:subagent-driven-development", "color": "text"},
-        {"text": "  as mandatory — contradicts CLAUDE.md line 22 which bans it", "color": "text"},
+        {
+          "text": "FAIL [HIGH]   memory/feedback_sdd_mandatory.md:3,7,11",
+          "color": "red",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  Active memory card instructs superpowers:subagent-driven-development",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  as mandatory — contradicts CLAUDE.md line 22 which bans it",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "FAIL [HIGH]   ~/.claude/rules/codex-routing.md (deployed copy)", "color": "red"},
-        {"text": "  Installed rules file is stale — repo source correct, install not re-run", "color": "text"},
+        {
+          "text": "FAIL [HIGH]   ~/.claude/rules/codex-routing.md (deployed copy)",
+          "color": "red",
+          "source_type": "ctx_session",
+          "source_ref": "25386540-2c58-76b4-97f3-1868c850c057"
+        },
+        {
+          "text": "  Installed rules file is stale — repo source correct, install not re-run",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "25386540-2c58-76b4-97f3-1868c850c057"
+        },
         {"text": "", "color": ""},
-        {"text": "FAIL [MEDIUM] docs/research/2026-07-09-cartridge-v2-handoff.md:50", "color": "yellow"},
-        {"text": "  'Invoke superpowers:subagent-driven-development to continue.'", "color": "text"},
+        {
+          "text": "FAIL [MEDIUM] docs/research/2026-07-09-cartridge-v2-handoff.md:50",
+          "color": "yellow",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  'Invoke superpowers:subagent-driven-development to continue.'",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "FAIL [MEDIUM] docs/superpowers/plans/2026-07-09-agent-prompt-upgrade.md:3", "color": "yellow"},
-        {"text": "  'REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development'", "color": "text"},
+        {
+          "text": "FAIL [MEDIUM] docs/superpowers/plans/2026-07-09-agent-prompt-upgrade.md:3",
+          "color": "yellow",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  'REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development'",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "FAIL [LOW]    README.md:304", "color": "yellow"},
-        {"text": "  Comment '# SDD x Codex cadence + failure modes' not updated", "color": "text"},
+        {
+          "text": "FAIL [LOW]    README.md:304",
+          "color": "yellow",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  Comment '# SDD x Codex cadence + failure modes' not updated",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
         {"text": "", "color": ""},
-        {"text": "-- Applying targeted fixes --", "color": "muted"},
-        {"text": "  memory/feedback_sdd_mandatory.md   SDD banned, parallel-executor mandatory", "color": "green"},
-        {"text": "  README.md:304                       comment updated", "color": "green"},
-        {"text": "  docs/research handoff               Invoke parallel-executor to continue", "color": "green"},
-        {"text": "  docs/superpowers plan               REQUIRED SUB-SKILL: Use parallel-executor", "color": "green"},
-        {"text": "  ~/.claude/rules/codex-routing.md    redeployed from repo source", "color": "green"},
+        {
+          "text": "-- Applying targeted fixes --",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  memory/feedback_sdd_mandatory.md   SDD banned, parallel-executor mandatory",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  README.md:304                       comment updated",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  docs/research handoff               Invoke parallel-executor to continue",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  docs/superpowers plan               REQUIRED SUB-SKILL: Use parallel-executor",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        },
+        {
+          "text": "  ~/.claude/rules/codex-routing.md    redeployed from repo source",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "25386540-2c58-76b4-97f3-1868c850c057"
+        },
         {"text": "", "color": ""},
-        {"text": "VERDICT: APPROVED — all 5 issues resolved. Ready to commit.", "color": "green"}
+        {
+          "text": "VERDICT: APPROVED — all 5 issues resolved. Ready to commit.",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "2b975580-16de-75f0-a256-84caca82e0b3"
+        }
       ]
     },
     {
       "filename": "03-table-fix-wide-vs-narrow.png",
       "title": "bash — table fix: wide→bullets, narrow→code block",
+      "image_type": "reconstructed_terminal_summary",
       "lines": [
-        {"text": "$ python3 -c 'test _convert_markdown_tables()'", "color": "muted"},
+        {
+          "text": "$ python3 -c 'test _convert_markdown_tables()'",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
         {"text": "", "color": ""},
-        {"text": "-- Wide table (4 cols) --", "color": "muted"},
-        {"text": "Input:  | Bottleneck | Impact per Sprint | Fix | Lines Changed |", "color": "text"},
-        {"text": "ASCII width: 120  →  > 88 char limit  →  BULLET LIST", "color": "yellow"},
+        {
+          "text": "-- Wide table (4 cols) --",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "Input:  | Bottleneck | Impact per Sprint | Fix | Lines Changed |",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "ASCII width: 120  →  > 88 char limit  →  BULLET LIST",
+          "color": "yellow",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
         {"text": "", "color": ""},
-        {"text": "Output:", "color": "white"},
-        {"text": "- **Architect re-planning** — Impact: +45 sec | Fix: --cached-plan flag | Lines: 30", "color": "green"},
-        {"text": "- **Full CLAUDE.md load**   — Impact: +12.6 sec | Fix: --minimal-context mode", "color": "green"},
-        {"text": "- **Three API calls/brief** — Impact: +36-63 sec | Fix: git status --porcelain", "color": "green"},
-        {"text": "- **pip install/change**    — Impact: +69 sec | Fix: --dependency-check flag", "color": "green"},
+        {
+          "text": "Output:",
+          "color": "white",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "- **Architect re-planning** — Impact: +45 sec | Fix: --cached-plan flag | Lines: 30",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "- **Full CLAUDE.md load**   — Impact: +12.6 sec | Fix: --minimal-context mode",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "- **Three API calls/brief** — Impact: +36-63 sec | Fix: git status --porcelain",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "- **pip install/change**    — Impact: +69 sec | Fix: --dependency-check flag",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
         {"text": "", "color": ""},
-        {"text": "-- Narrow table (3 cols) --", "color": "muted"},
-        {"text": "Input:  | Agent | Claude Cost | DeepSeek Cost | Savings |", "color": "text"},
-        {"text": "ASCII width: 50  →  <= 88 chars  →  CODE BLOCK", "color": "cyan"},
+        {
+          "text": "-- Narrow table (3 cols) --",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "Input:  | Agent | Claude Cost | DeepSeek Cost | Savings |",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "ASCII width: 50  →  <= 88 chars  →  CODE BLOCK",
+          "color": "cyan",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
         {"text": "", "color": ""},
-        {"text": "Output:", "color": "white"},
-        {"text": "  ```", "color": "muted"},
-        {"text": "  +--------+-------------+---------------+---------+", "color": "cyan"},
-        {"text": "  | Agent  | Claude Cost | DeepSeek Cost | Savings |", "color": "cyan"},
-        {"text": "  +--------+-------------+---------------+---------+", "color": "cyan"},
-        {"text": "  | Parser | $320        | $51           | 84%     |", "color": "text"},
-        {"text": "  +--------+-------------+---------------+---------+", "color": "cyan"},
-        {"text": "  ```", "color": "muted"},
+        {
+          "text": "Output:",
+          "color": "white",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  ```",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  +--------+-------------+---------------+---------+",
+          "color": "cyan",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  | Agent  | Claude Cost | DeepSeek Cost | Savings |",
+          "color": "cyan",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  +--------+-------------+---------------+---------+",
+          "color": "cyan",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  | Parser | $320        | $51           | 84%     |",
+          "color": "text",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  +--------+-------------+---------------+---------+",
+          "color": "cyan",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "  ```",
+          "color": "muted",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
         {"text": "", "color": ""},
-        {"text": "format.py: _MAX_MEDIUM_CODE_WIDTH=88 + _render_bullet_list_from_table()", "color": "green"},
-        {"text": "content_generator_system.txt: DATA TABLE wide-cell bullet list rule added", "color": "green"}
+        {
+          "text": "format.py: _MAX_MEDIUM_CODE_WIDTH=88 + _render_bullet_list_from_table()",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        },
+        {
+          "text": "content_generator_system.txt: DATA TABLE wide-cell bullet list rule added",
+          "color": "green",
+          "source_type": "ctx_session",
+          "source_ref": "6e567eea-3ed0-79de-bf5d-5ec3d27d177d"
+        }
       ]
     }
   ]

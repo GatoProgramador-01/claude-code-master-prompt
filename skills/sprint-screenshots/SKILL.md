@@ -16,6 +16,38 @@ tree is complete and the user says "take screenshots" or "document this sprint".
 
 Invoke BEFORE running `run_parallel_executor_post.py` (or equivalent) so paths are ready.
 
+## Step 0: Auto-generate spec lines from ctx (REQUIRED before manual authoring)
+
+Before writing any spec.json content, invoke the `ctx-agent-history-search` skill to find real
+session evidence. The full workflow:
+
+```bash
+# 1. Confirm ctx is ready
+ctx status
+
+# 2. Search broadly for the sprint topic — try multiple wordings
+ctx search "<sprint topic>" --verbose
+ctx search "<key metric or decision>" --session <ctx-session-id> --verbose
+
+# 3. Inspect the top events with context window
+ctx show event <ctx-event-id> --window 5
+
+# 4. Pull exact text for each spec.json line
+#    Set source_ref = ctx_event_id, source_type = ctx_session
+```
+
+For each screenshot, pull the exact text from the ctx event output. Set `source_ref` to the
+`ctx_event_id` (e.g., `e5c616f8-5cd2-78ef-ac91-1e5a0b9b4c20`) and `source_type` to `ctx_session`.
+
+Only add manually authored lines with `source_type: explicit_author` (first-person statements
+like "I measured X" that don't appear in any session event).
+
+**Routing rule:** invoke `ctx-agent-history-search` skill, NOT raw ctx CLI commands directly.
+The skill sets up PATH and handles the multi-step search → inspect → cite loop.
+
+**Never type a claim into spec.json without a source_ref.** The generator rejects lines missing
+`source_type`. Also every screenshot object requires `"image_type": "reconstructed_terminal_summary"`.
+
 ## Output location
 
 All screenshots go to:

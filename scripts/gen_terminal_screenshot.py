@@ -56,6 +56,43 @@ PALETTE = {
     "muted":    "#585b70",
 }
 
+VALID_SOURCE_TYPES = frozenset({
+    "ctx_session",
+    "git_output",
+    "codex_review",
+    "mongodb_pipeline",
+    "test_log",
+    "explicit_author",
+})
+
+
+def validate_spec(spec: dict) -> None:
+    """Validate provenance fields. Raises ValueError on violation.
+
+    Every non-blank line must have source_type from VALID_SOURCE_TYPES.
+    Every screenshot must have image_type.
+    """
+    for shot in spec.get("screenshots", []):
+        filename = shot.get("filename", "unknown")
+        if "image_type" not in shot:
+            raise ValueError(
+                f"Screenshot '{filename}' missing required field 'image_type'. "
+                f"Use 'reconstructed_terminal_summary'."
+            )
+        for i, line in enumerate(shot.get("lines", [])):
+            if not line.get("text"):
+                continue
+            if "source_type" not in line:
+                raise ValueError(
+                    f"Screenshot '{filename}' line {i} (text='{line.get('text', '')[:40]}') "
+                    f"missing 'source_type'. Valid: {sorted(VALID_SOURCE_TYPES)}"
+                )
+            if line["source_type"] not in VALID_SOURCE_TYPES:
+                raise ValueError(
+                    f"Screenshot '{filename}' line {i} has unknown source_type "
+                    f"'{line['source_type']}'. Valid: {sorted(VALID_SOURCE_TYPES)}"
+                )
+
 W = 860
 PAD = 24
 LINE_H = 20
@@ -135,6 +172,8 @@ def make_image(title: str, lines_spec: list[dict]) -> Image.Image:
 def run(spec_path: str, out_dir: str | None = None) -> list[str]:
     with open(spec_path, encoding="utf-8") as f:
         spec = json.load(f)
+
+    validate_spec(spec)
 
     slug = spec.get("slug", "sprint")
     repo_root = Path(__file__).parent.parent
