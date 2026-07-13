@@ -1,13 +1,15 @@
 ---
 name: parallel-executor
-description: "Parallel sprint executor — replacement for superpowers:subagent-driven-development. Use at the start of every sprint, immediately after writing-plans. Groups independent tasks into parallel waves by file overlap, fires all implementers in a wave simultaneously, then fires all reviewers simultaneously. One blocked task never freezes others. Uses the same SDD scripts (task-brief, review-package, progress ledger) unchanged. Trigger: user says 'start sprint', 'implement the plan', or 'run SDD'. Never use superpowers:subagent-driven-development — use this instead."
+description: "Parallel sprint executor — replacement for superpowers:subagent-driven-development. Use at the start of every sprint, immediately after writing-plans. Groups independent tasks into parallel waves by file overlap, fires all implementers in a wave simultaneously, then fires all reviewers simultaneously. One blocked task never freezes others. Uses the same parallel-executor scripts (task-brief, review-package, progress ledger) unchanged. Measured 34 min → ~10 min on 2026-07-13 sprint. Trigger: user says 'start sprint', 'implement the plan', or 'run parallel-executor'. Never use superpowers:subagent-driven-development — use this instead."
 ---
 
 # Parallel Executor — Wave-Parallel Sprint Controller
 
-Replacement for `superpowers:subagent-driven-development`. Reuses all SDD scripts unchanged. Replaces only the sequential controller with a wave-parallel one.
+Replacement for `superpowers:subagent-driven-development`. Reuses all parallel-executor scripts unchanged. Replaces only the sequential controller with a wave-parallel one.
 
 **Root cause fixed:** SDD's "Never: Dispatch multiple implementation subagents in parallel" rule forced sequential execution regardless of task independence. A 3-task sprint that could finish in ~10 min took 34 min.
+
+**Measured result:** 3-task sprint completed in ~10 min vs ~34 min sequential (SDD). Root cause: SDD 'Never parallelize' rule. Fix: wave analysis + simultaneous Agent() dispatch. (2026-07-13)
 
 ---
 
@@ -59,7 +61,7 @@ If `task-brief` scripts don't exist, read the task section directly from the pla
 
 ### Step 3 — Dispatch all implementers simultaneously
 
-**One message, multiple `Agent()` calls** — this is the core change from SDD.
+**One message, multiple `Agent()` calls** — this is the core change from the old sequential controller.
 
 For each task in the wave, dispatch one agent using the routing table below. All fire in the same message turn.
 
@@ -191,7 +193,7 @@ Print **before firing each wave** (shows plan) and **after each wave completes**
 
 ## Progress Ledger Format
 
-Identical to SDD format. File: `.superpowers/sdd/progress.md`
+Identical to parallel-executor format. File: `.superpowers/sdd/progress.md`
 
 ```
 # <Sprint Name> Sprint
@@ -219,10 +221,10 @@ SPRINT STATUS: MERGE-READY
 
 ---
 
-## Key Difference vs SDD
+## Key Difference vs Sequential (Old)
 
-| SDD (old) | parallel-executor (this) |
-|-----------|--------------------------|
+| Sequential (old) | parallel-executor (this) |
+|------------------|--------------------------|
 | One implementer at a time | All independent implementers in one message |
 | One reviewer at a time | All reviewers in one message |
 | One blocked task freezes sprint | One blocked task pauses only its slot |

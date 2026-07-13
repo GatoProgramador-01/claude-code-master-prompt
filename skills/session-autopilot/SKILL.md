@@ -5,6 +5,8 @@ description: "Session audit and handoff skill — invoke this ALWAYS when: the u
 
 # Session Autopilot — Context Close Audit
 
+> Fires at ≥50% context. Writes session_logs to MongoDB. Runs 3 audit agents in parallel: session analyst + token auditor + error auditor.
+
 The context window is approaching its limit (or the user has signalled it). Run this skill now to capture everything important before compaction or session end.
 
 ## Trigger conditions (any one is sufficient)

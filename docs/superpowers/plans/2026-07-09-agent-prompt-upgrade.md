@@ -1,6 +1,6 @@
 # Agent Prompt Upgrade Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use parallel-executor (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rewrite CLAUDE.md as a ~130-line thin router, refactor all ~/.claude/agents/*.md into a shared 10-slot expertise cartridge format, retire duplicative agents, add 3 new domain experts, and validate the change via meta-evals + a field test on medium-agent-factory.
 

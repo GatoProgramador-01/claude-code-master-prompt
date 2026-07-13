@@ -16,13 +16,13 @@
 
 | Metric | Value | As of |
 |--------|-------|-------|
-| Total commits | 147 | 2026-07-08 |
-| Commits this week (2026-06-29 → 2026-07-08) | 18 | — |
+| Total commits | 147 | 2026-07-13 |
+| Commits this week (2026-06-29 → 2026-07-13) | 19 | — |
 | Lines inserted this week | 2,216+ across 21 files | — |
-| CLAUDE.md length | 383 lines | 2026-07-08 |
-| Specialized agents | 14 | commit [4cf936e](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4cf936e) |
+| CLAUDE.md length | 383 lines | 2026-07-13 |
+| Specialized agents | 13 | commit [4cf936e](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4cf936e) |
 | Domain rule files (lazy-loaded) | 5 | — |
-| Skills | 1 (session-autopilot) | commit [1a35b26](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/1a35b26) |
+| Skills | 2 (session-autopilot, parallel-executor) | commit [1a35b26](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/1a35b26) |
 
 ---
 
@@ -46,10 +46,10 @@ The current version is **cartridge-v2**: a thin 107-line router `CLAUDE.md`, thi
 | 2026-07-07 | [274237a](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/274237a) | Codex adversarial-review wired into SDD two-step review loop — controller runs `codex:adversarial-review --wait` after every implementer commit, passes findings to `adversarial` subagent; README rewritten (161 lines changed) |
 | 2026-07-07 | [6a8f691](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/6a8f691) | Push after every commit rule — every `git commit` is immediately followed by `git push`; pre-push hook failure triggers `ruff check --fix && black`, re-stage, then retry; `--no-verify` forbidden |
 | 2026-07-07 | [46a79e2](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/46a79e2) | Mandatory parallel wave dispatch — controller must scan ALL remaining tasks before firing any; reviewer N and implementer N+1 dispatch in the same message when files don't overlap |
-| 2026-07-07 | [4607c83](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4607c83) | SDD mandated over inline execution — `superpowers:subagent-driven-development` is the only option; inline code writing removed as alternative |
+| 2026-07-07 | [4607c83](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/4607c83) | parallel-executor mandated over inline execution — `parallel-executor` is the only option; inline code writing removed as alternative |
 | 2026-07-07 | [0057c01](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/0057c01) | Fix: SDD reviewer role corrected to `adversarial` (was `analyst`) — confirmed from production session 2026-07-06 |
 | 2026-07-06 | [bec2dc8](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/bec2dc8) | SDD × Group of Experts per-task routing table — maps each implementer task to the correct `subagent_type`: `drafter`, `llmops-expert`, `backend-expert`, `frontend-expert`, `devops-expert`, `prompt-engineer`, `eval-writer` |
-| 2026-07-05 | [90a4f10](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/90a4f10) | SDD mandatory every sprint — `superpowers:subagent-driven-development` now fires after every `writing-plans` call, before any code is written; cannot be skipped |
+| 2026-07-05 | [90a4f10](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/90a4f10) | parallel-executor mandatory every sprint — `parallel-executor` now fires after every `writing-plans` call, before any code is written; cannot be skipped |
 | 2026-07-05 | [18eaf58](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/18eaf58) | Memory: SDD mandatory feedback rule — persisted to session memory so future sessions inherit the constraint without re-learning it |
 | 2026-07-04 | [c8075ce](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/c8075ce) | Execution strategy commitment — once subagent-driven is chosen, no mid-sprint switch to inline; permission prompt failures fixed in `~/.claude/settings.json`, not by changing strategy |
 | 2026-07-04 | [e69f307](https://github.com/GatoProgramador-01/claude-code-master-prompt/commit/e69f307) | Auto-compact policy threshold changed to 50% — triggers `/compact Focus on <project> Sprint <N> — <next task>` when context reaches 50% (was 70%) |
@@ -68,7 +68,7 @@ The current version is **cartridge-v2**: a thin 107-line router `CLAUDE.md`, thi
 - **Parallel agents by default** — minimum 3 per task, target 5, max 8 simultaneous. Solo responses are the exception.
 - **13-agent Group of Experts (v2)** — cartridge-v2 template: `ROLE / HYDRATION / TRIGGERS / PATTERNS / HANDOFF / REVIEW / SELF-CRITIQUE / ESCALATION / BOUNDARIES / COST BUDGET`, each cartridge with 3-shot positive exemplars overriding Sonnet training priors.
 - **Thin `CLAUDE.md`** — 107 lines of non-negotiable rules + routing pointers; deep guidance lives in on-demand `rules/` files, zero token cost when out of scope.
-- **Superpowers SDD** — `superpowers:subagent-driven-development` fires immediately after `writing-plans`. Inline execution is not an option.
+- **Parallel executor** — `parallel-executor` fires immediately after `writing-plans`. Inline execution is not an option.
 - **Codex adversarial review** — `/codex:adversarial-review --wait` (GPT-5.4, cross-provider) runs in the controller after every implementer commit and feeds findings into the `adversarial` reviewer subagent. No merge without Codex.
 - **Parallel wave dispatch** — before dispatching ANY implementer, the controller scans all remaining tasks and fires every independent one in the same message.
 - **Meta-evals** — 24-case dataset scoring cartridges on 30% slot coverage + 50% correctness + 20% cost, threshold 0.80, 25/25 rubric tests passing.
@@ -103,21 +103,34 @@ The Architect routes; each expert owns a domain and returns bounded output. Code
 
 The retired v1 cartridges (`analyst`, `integrator`, `jsdoc`, `security-reviewer`) are archived at `~/.claude/agents/archive/2026-07-09-v1/` and remain rollback-recoverable.
 
+---
+
+## Skills
+
+Skills are on-demand workflow enhancements that Claude invokes automatically when the trigger condition is met. They are not loaded every session — they fire only when relevant.
+
+| Skill | Trigger | What it does |
+|-------|---------|--------------|
+| `parallel-executor` | After `superpowers:writing-plans` completes | Decomposes the plan into a DAG of independent tasks, groups them into waves, and dispatches all tasks in each wave simultaneously via parallel `Agent()` calls. Replaces sequential dispatch. **Measured: 3-task sprint 34 min → ~10 min (2026-07-13)** |
+| `session-autopilot` | Context reaches ≥50% | Writes a `session_logs` entry to MongoDB, prints the sprint status tree, and recommends `/compact` with a scoped focus string. Runs 3 audit agents in parallel: session analyst + token auditor + error auditor. |
+
+---
+
 ### Standard workflow teams
 
 | Scenario | Team |
 |----------|------|
-| New pipeline node | architect + adversarial (parallel) → writing-plans → SDD (llmops-expert + adversarial) → validate → llmops-expert wires orchestrator |
-| New API endpoint | architect → backend-expert + adversarial (parallel) → writing-plans → SDD → validate → commit |
-| Frontend feature | frontend-expert + adversarial (parallel) → writing-plans → SDD → validate → commit (TSDoc emitted by frontend-expert itself) |
-| Deploy / infra change | devops-expert → adversarial → writing-plans → SDD → validate → commit |
-| Full-stack feature | frontend-expert + backend-expert + adversarial (all parallel) → writing-plans → SDD → validate → llmops-expert (integration) |
+| New pipeline node | architect + adversarial (parallel) → writing-plans → parallel-executor (llmops-expert + adversarial) → validate → llmops-expert wires orchestrator |
+| New API endpoint | architect → backend-expert + adversarial (parallel) → writing-plans → parallel-executor → validate → commit |
+| Frontend feature | frontend-expert + adversarial (parallel) → writing-plans → parallel-executor → validate → commit (TSDoc emitted by frontend-expert itself) |
+| Deploy / infra change | devops-expert → adversarial → writing-plans → parallel-executor → validate → commit |
+| Full-stack feature | frontend-expert + backend-expert + adversarial (all parallel) → writing-plans → parallel-executor → validate → llmops-expert (integration) |
 | New prompt / eval | prompt-engineer + eval-writer (parallel) → sme-reviewer → validate → commit |
 | Debug failing test | adversarial (read-only diagnostics) + adversarial (blind hypothesis, parallel) → validate fix |
 
 ---
 
-## SDD × Group of Experts Integration
+## parallel-executor × Group of Experts Integration
 
 ### Per-task routing
 
@@ -138,7 +151,7 @@ The retired v1 cartridges (`analyst`, `integrator`, `jsdoc`, `security-reviewer`
 
 Dispatching `general-purpose` with a freeform prompt is an explicit failure mode. If no expert matches exactly, `drafter` is the fallback.
 
-### SDD review flow (per task, non-negotiable)
+### parallel-executor review flow (per task, non-negotiable)
 
 1. Implementer subagent commits and reports.
 2. Controller runs `Skill("codex:adversarial-review", "--wait")` in the main session.
@@ -171,6 +184,49 @@ Every agent cartridge follows a fixed 10-slot layout. This is what makes cartrid
 | 10 · COST BUDGET | Model tier + max-turn ceiling |
 
 **3-shot positive exemplars beat negative prose bans.** Wave 5 field-tested the architect cartridge and found Sonnet training priors overrode 3 defensive layers of "do not route to `integrator`" prose. Wave 6 fix: added three concrete YAML task-brief exemplars (`agent: llmops-expert`) showing the correct output shape. Post-fix: 0/3 misroutings.
+
+---
+
+## Productivity
+
+### Sprint execution speed
+| Approach | 3-task sprint (no file overlap) | Why |
+|---|---|---|
+| Sequential (SDD, pre-fix) | ~34 min | One implementer at a time; idle timeouts; sequential reviewer wait |
+| Wave-parallel (current) | ~10 min | All 3 implementers fire in one message; reviewers fire simultaneously |
+
+Source: measured on 2026-07-13 session (claude-code-master-prompt, PR #1)
+
+### Content pipeline quality (medium-agent-factory dogfood)
+| Run date | Topic | Score | Boost eligible | Revisions |
+|---|---|---|---|---|
+| 2026-06-17 | DeepSeek series (3 posts) | 0.96–1.0 | ✅ all 3 | — |
+| 2026-07-13 | parallel-executor fix post | 0.93 | ✅ | 3 |
+
+Pipeline: research → fact-check → 9-axis G-Eval → revision loop (max 3 cycles)
+
+### Cost routing
+| Task type | Agent | Model | Relative cost |
+|---|---|---|---|
+| Read / search / lint / format | validate, drafter | haiku | 1× |
+| Write / review / multi-file | all others | sonnet | ~10× |
+| Architecture tradeoffs only | architect | opus | ~40× |
+
+Haiku routes: pre-commit gates, simple formatters, fallback drafts.
+Sonnet routes: everything that generates or reviews code.
+Opus: reserved for cross-cutting architecture decisions (rare).
+
+### Token efficiency
+| Change | Before | After |
+|---|---|---|
+| CLAUDE.md lazy-loading | 1,300 lines loaded every session | 107 lines + on-demand rules |
+| Verbose Bash output compression | 8,000 line CI logs in context | grep -E errors head-200 |
+| Sub-agent context isolation | Full session context per agent | Agent gets only its task brief |
+
+### Meta-eval scores
+- 24-case dataset scoring 3 agent types (llmops-expert, backend-expert, architect)
+- Rubric: 30% slot coverage · 50% correctness · 20% cost efficiency
+- Pass threshold: 0.80 · Current: all 3 agents above threshold (25/25 rubric tests passing)
 
 ---
 
@@ -245,7 +301,7 @@ EOF
     │   └── archive/2026-07-09-v1/   # retired v1 cartridges (rollback path)
     └── rules/                       # lazy-loaded, on-demand
         ├── workflows.md              # parallel wave patterns + teams
-        ├── codex-routing.md          # SDD × Codex cadence + failure modes
+        ├── codex-routing.md          # parallel-executor × Codex cadence + failure modes
         ├── sprint-status.md          # status tree spec (cat emoji legend)
         └── hooks.md                  # PostToolUse/PreToolUse/Stop hooks
 ```
@@ -333,7 +389,7 @@ Every sprint prints a live status tree — before agents launch (plan + baseline
 ```
 😸 Sprint N — activo
 ├── 🤖 agentes  — 4 parallel (llmops-expert·backend-expert·adversarial·validate)
-├── 🧠 skills   — brainstorming → writing-plans → subagent-driven-development
+├── 🧠 skills   — brainstorming → writing-plans → parallel-executor
 ├── 📊 metrics  — tests 761→833 · TS 0 errors · build ✅
 ├── ✅ pre_revision.py       — 17 _SLOP_SUBS entries added
 ├── ✅ humanizer_pass.py     — missing_messiness injection node
@@ -354,6 +410,7 @@ Full spec at `rules/sprint-status.md`.
 
 | Sprint | What Shipped |
 |--------|-------------|
+| 2026-07-13 | parallel-executor + lain-specialist cleanup | Wave-parallel dispatch, removed lain-specialist, 34 min → 10 min sprint speed |
 | Foundation | Tech lead + DevOps role; TDD Red→Green→Refactor; Python conventions; `.gitignore` security |
 | Terraform hardening | HCL attribute syntax; `lifecycle` inside resource; `archive_file` over `filebase64sha256`; `prevent_destroy` on stateful resources |
 | GitHub Actions safety | Branch verification; `mapfile` vs pipe-while subshell bug; OIDC over static keys |

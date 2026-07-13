@@ -47,7 +47,7 @@ Resume the agent-prompt-upgrade sprint. Read these files in order:
 4. Documents/github/claude-code-master-prompt/docs/research/agent-usage-heatmap.md — Wave 0 verdict
 
 Start at Task 1.1 (architect writes cartridge template spec).
-Invoke superpowers:subagent-driven-development to continue.
+Invoke parallel-executor to continue.
 Wave 3.7 (integrator cartridge) is SKIPPED per Wave 0 verdict.
 Staging dir already seeded: ~/.claude-agents-v2/agents/ (14 baseline files present).
 ```

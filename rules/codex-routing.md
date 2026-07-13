@@ -1,6 +1,6 @@
 # Codex Plugin — Adversarial Cross-Provider Review
 
-**Rule scope:** loaded on-demand whenever a session needs the full Codex cadence, failure-mode catalogue, or SDD × Codex routing detail.
+**Rule scope:** loaded on-demand whenever a session needs the full Codex cadence, failure-mode catalogue, or parallel-executor × Codex routing detail.
 
 ## Install / auth
 ```
@@ -28,9 +28,9 @@ Auth confirmed active: jcollipal1212@gmail.com, ChatGPT, codex-cli 0.142.3.
 - **Fixing bugs alone for > 5 min without `/codex:rescue`** → wasted context on a solvable problem.
 - **Running Codex at the very end only** → Codex finds nothing useful because all decisions are locked.
 
-## SDD × Codex per-task routing (non-negotiable)
+## parallel-executor × Codex per-task routing (non-negotiable)
 
-Within `superpowers:subagent-driven-development`, every implementer and reviewer MUST use the correct expert. `general-purpose` loses domain expertise and skips the structured review contract.
+Within `parallel-executor`, every implementer and reviewer MUST use the correct expert. `general-purpose` loses domain expertise and skips the structured review contract.
 
 | Role | Agent / Skill | When |
 |------|---------------|------|
@@ -54,7 +54,7 @@ Within `superpowers:subagent-driven-development`, every implementer and reviewer
 
 Each `subagent_type` value must exactly match an agent filename in `~/.claude/agents/<name>.md` (no `.md` extension). If the name isn't in that directory, use `drafter`.
 
-## SDD review flow (non-negotiable)
+## parallel-executor review flow (non-negotiable)
 
 1. Controller runs `Skill("codex:adversarial-review", "--wait")` immediately after the implementer commits.
 2. Controller appends Codex findings (severity, file:line, recommendations) to the task reviewer prompt.
@@ -63,16 +63,16 @@ Each `subagent_type` value must exactly match an agent filename in `~/.claude/ag
 
 ## Template trap
 
-The SDD `implementer-prompt.md` template contains `[AGENT_TYPE]` — always replace it with the `subagent_type` from the routing table above. `Agent(model="sonnet")` with no `subagent_type` silently routes to `general-purpose` and is equally wrong. **This file is the authoritative routing source.** Plugin updates can overwrite `implementer-prompt.md` and restore a bad default.
+The parallel-executor `implementer-prompt.md` template contains `[AGENT_TYPE]` — always replace it with the `subagent_type` from the routing table above. `Agent(model="sonnet")` with no `subagent_type` silently routes to `general-purpose` and is equally wrong. **This file is the authoritative routing source.** Plugin updates can overwrite `implementer-prompt.md` and restore a bad default.
 
-## Codex mode taxonomy (per cartridge) — self-review dimension, NOT SDD gate
+## Codex mode taxonomy (per cartridge) — self-review dimension, NOT parallel-executor gate
 
-**⚠️ Do NOT read `codex_mode` as an override on the SDD blocking gate.** The SDD controller ALWAYS runs `codex:adversarial-review --wait` after every implementer commit, regardless of the implementer cartridge's declared `codex_mode`. Findings feed the `adversarial` subagent's task-review verdict, which the controller waits on before dispatching the next implementer. There is no path where a cartridge downgrades this gate.
+**⚠️ Do NOT read `codex_mode` as an override on the parallel-executor blocking gate.** The parallel-executor controller ALWAYS runs `codex:adversarial-review --wait` after every implementer commit, regardless of the implementer cartridge's declared `codex_mode`. Findings feed the `adversarial` subagent's task-review verdict, which the controller waits on before dispatching the next implementer. There is no path where a cartridge downgrades this gate.
 
-`codex_mode` describes what the AGENT does with Codex output during its OWN work, not what the SDD controller does after the agent finishes:
+`codex_mode` describes what the AGENT does with Codex output during its OWN work, not what the parallel-executor controller does after the agent finishes:
 
 - **codex-blocking** — This agent expects to consult Codex mid-task on high-risk decisions (orchestration wiring, IaC, secrets). Used by `llmops-expert`, `devops-expert`.
 - **codex-concurrent** — This agent produces standard implementation code; Codex runs in parallel and the agent folds findings into its own self-review before returning. Used by `backend-expert`, `frontend-expert`, `adversarial`, `scraper`, `drafter`, `prompt-engineer`, `eval-writer`.
 - **codex-skip** — This agent does not produce code that needs Codex review (architect designs only, validate is the final gate, researcher writes prose, sme-reviewer is itself a review agent). Used by `architect`, `validate`, `researcher`, `sme-reviewer`.
 
-**The SDD merge gate is always Codex `--wait` + `adversarial` subagent verdict, no exceptions.**
+**The parallel-executor merge gate is always Codex `--wait` + `adversarial` subagent verdict, no exceptions.**
