@@ -51,3 +51,6 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# Generated screenshots (regenerate from spec.json)
+output/screenshots/**/*.png
