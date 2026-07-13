@@ -80,7 +80,12 @@ def validate_spec(spec: dict) -> None:
                 f"Use 'reconstructed_terminal_summary'."
             )
         for i, line in enumerate(shot.get("lines", [])):
-            if not line.get("text"):
+            text = line.get("text")
+            if text is None:
+                raise ValueError(
+                    f"Screenshot '{filename}' line {i} is missing the 'text' key."
+                )
+            if not text:
                 continue
             if "source_type" not in line:
                 raise ValueError(
