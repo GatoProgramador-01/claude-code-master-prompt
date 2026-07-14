@@ -38,7 +38,8 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 | LangGraph node, PipelineState, orchestrator wiring, evals, LLMOps | `llmops-expert` | sonnet |
 | FastAPI/NestJS routes, Pydantic, Motor, rate limits, auth | `backend-expert` | sonnet |
 | React/Next.js, App Router, Zustand, RTL, TSDoc, SSE UI | `frontend-expert` | sonnet |
-| Docker, GitHub Actions, Terraform, Railway/Vercel, secrets | `devops-expert` | sonnet |
+| Docker, GitHub Actions, Terraform, Railway, CI/CD secrets | `devops-expert` | sonnet |
+| Vercel deploys, env vars, domains, preview→prod promotion | `vercel-deployer` | sonnet |
 | Attack designs + diffs, OWASP scan, read-only diagnostics | `adversarial` | sonnet |
 | type/lint/format/test gate before commit | `validate` | haiku |
 | Web research, primary sources, fact grounding | `researcher` | sonnet |
