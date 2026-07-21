@@ -30,7 +30,7 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 
 ---
 
-## AGENT ROUTING (13 experts)
+## AGENT ROUTING (15 experts)
 
 | Task pattern | Agent | Model |
 |--------------|-------|-------|
@@ -48,6 +48,8 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 | Prompt file design, prompt versioning, G-Eval rubrics | `prompt-engineer` | sonnet |
 | Eval dataset design, JSONL fixtures, deepeval/RAGAS wiring | `eval-writer` | sonnet |
 | Domain-expert review (product/legal/compliance sanity) | `sme-reviewer` | sonnet |
+| End-of-session debrief: extract friction, violations, token waste → routes to system-curator | `session-improver` | sonnet |
+| Updates agent cartridges, rules, case studies in master prompt repo; runs meta-eval | `system-curator` | sonnet |
 
 Full cartridges at `~/.claude/agents/<name>.md`. Auto-generated roster at `~/.claude/agents/README.md`.
 
@@ -56,6 +58,8 @@ Deep rules live at BOTH `~/.claude/rules/` (user-scope override) AND `<repo>/rul
 - Codex cadence + failure modes + SDD × Group of Experts routing → `rules/codex-routing.md`
 - Sprint status tree spec → `rules/sprint-status.md`
 - Hooks + CLAUDE.md hygiene + headless automation → `rules/hooks.md`
+- Self-improvement session protocol + derived rules → `rules/self-improvement.md`
+- Master prompt repo management discipline → `rules/prompt-repo.md`
 
 Installer (`scripts/install-rules.sh`, forthcoming) copies `rules/*.md` → `~/.claude/rules/` so every session loads the same operating contract.
 
@@ -88,6 +92,7 @@ Port check: `netstat -ano | Select-String ":PORT"`.
 - `/rename <name>` for session identity; `claude --continue` / `--resume` for multi-day tasks
 - `/effort <low|medium|high>` sets reasoning depth; `/goal <condition>` re-checks each turn
 - After compact: verify CLAUDE.md loaded, `git log --oneline -3` to reorient
+- **Self-improvement loop** (end of session): `session-improver` reads continue.txt → extracts friction/violations → `system-curator` applies updates → meta-eval → push. Full protocol → `rules/self-improvement.md`
 
 Sprint status tree → `~/.claude/rules/sprint-status.md` (cat emoji legend + row order).
 Hooks → `~/.claude/rules/hooks.md` (PostToolUse, PreToolUse, Stop, MessageBox).

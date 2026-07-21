@@ -3,7 +3,7 @@
 # Claude Code Master Prompt
 
 **A production operating system for AI-assisted engineering.**  
-13 specialized agents · Wave-parallel dispatch · Cross-provider adversarial review · Evidence-based rules
+15 specialized agents · Wave-parallel dispatch · Cross-provider adversarial review · Self-improving via session debrief loop
 
 [![Maintained](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)]() [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![Node](https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/) [![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/) [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat-square&logo=terraform&logoColor=white)](https://www.terraform.io/) [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
@@ -72,7 +72,7 @@ flowchart TD
 
 ---
 
-## The 13 Specialists
+## The 15 Specialists
 
 | Agent | Model | Owns |
 |-------|-------|------|
@@ -89,8 +89,34 @@ flowchart TD
 | 🧪 **sme-reviewer** | Sonnet | Subject-matter review — fact accuracy, audience fit |
 | ✍️ **drafter** | Haiku | Fallback implementer for any task with no exact expert match — TDD first |
 | ✅ **validate** | Haiku | Pre-commit gate: type check → lint → format → tests → build |
+| 🔎 **session-improver** | Sonnet | End-of-session debrief: reads continue.txt, extracts friction/violations/token waste, routes findings to system-curator |
+| 🛠️ **system-curator** | Sonnet | Updates agent cartridges, rules, case studies in the master prompt repo; runs meta-eval; commits and pushes |
 
 > Haiku for cheap gates (10× less than Sonnet). Sonnet for everything that generates or reviews code. Opus reserved for cross-cutting architecture — used rarely.
+
+---
+
+## The Self-Improvement Loop
+
+The system improves itself after every session. `session-improver` reads what went wrong. `system-curator` fixes it. The next session starts smarter.
+
+```mermaid
+flowchart LR
+    S([Session ends\ncontinue.txt written]) --> I[🔎 session-improver\nReads artifacts\nClassifies friction]
+    I --> |"improvement report\n≤10 findings\nwith evidence"| C[🛠️ system-curator\nEdits agents/ or rules/]
+    C --> E[Meta-eval\n25 tests\nthreshold 0.80]
+    E --> |pass| G[git push\nmaster prompt repo]
+    E --> |fail| R[revert slot\nflag for review]
+    G --> NS([Next session\nstarts with fix applied])
+```
+
+**What triggers a self-improvement session:**
+- Session ends with a `continue.txt` that has lessons or friction > 10 min
+- The same mistake appeared 2+ times in a session
+- A bug was fixed that an existing rule should have caught
+- Token spend exceeded $1.00 (session-autopilot flags it)
+
+**What it CANNOT do:** propose rules without a specific incident. "Claude should be more careful" is not a finding. A UnicodeEncodeError on cp1252 at line 203 of `_print_report` on 2026-07-21 is a finding.
 
 ---
 
@@ -361,7 +387,7 @@ bash scripts/install-rules.sh
 
 | Sprint | What Shipped |
 |--------|-------------|
-| Self-improvement loop (2026-07-21) | Darwin Gödel Machine–style loop: slop_judge → gap_patch → auto_patch → rerun. 9 bugs fixed, 1 patch auto-applied to production |
+| Self-improvement loop + system curator (2026-07-21) | Darwin Gödel Machine–style loop in medium-agent-factory: 9 bugs fixed, 1 patch auto-applied. Meta-loop: session-improver + system-curator agents added — the system now improves itself after every session |
 | Cartridge v2 (2026-07-09) | 10-slot template, 3-shot exemplars, roster → 13 agents, CLAUDE.md 391→107 lines, 24-case meta-eval, 25/25 tests |
 | parallel-executor (2026-07-13) | Wave-parallel dispatch replaces sequential SDD — 34 min → ~10 min for 3-task sprint |
 | Group of Experts v1 (2026-07-03) | 14 specialized agents, auto-compact policy, session-autopilot skill |
