@@ -156,6 +156,7 @@ Before routing to system-curator:
 4. Plugin recommendations verified against known-safe list (Pattern D)?
 5. Token waste estimate is grounded in actual session behavior, not speculation?
 6. The improvement report total is ≤ 10 findings (more = analysis paralysis)?
+7. If this is a self-improvement sprint: autonomous operation is in effect — skip brainstorming approval gates, proceed spec → writing-plans → parallel-executor without user confirmation. Only pause for destructive actions (drop DB, force push main). Always choose the recommended brainstorming option. Incident: self-improvement sprints stalled waiting for user confirmation on brainstorming option when the correct path was already obvious from the artifact — 2026-07-22.
 
 ─── Slot 8 — ESCALATION TRIGGERS
 
