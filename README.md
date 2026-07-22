@@ -387,6 +387,7 @@ bash scripts/install-rules.sh
 
 | Sprint | What Shipped |
 |--------|-------------|
+| Sprint 35 (2026-07-22) | Pipeline timing optimizations: asyncio.gather in quality_analyzer (LLM + read_ratio concurrent, saves ~20-30s); formatter fast path when no long paragraphs (skip full-content LLM reformat, deterministic separator + 500-word pull-quote call, saves ~60-100s). 11 new tests, 0 regressions. |
 | Sprint 34 (2026-07-22) | Slop gate precision + loop convergence: removed READER_CTA_BAIT false positive ($\d+ pattern), added per-issue ai_slop repair block injected into revision prompt, decoupled loop convergence from truth_enforcer_passed, added loop_payload.json with Sprint 27 raw_numbers. 8 new unit tests, 60/60 pass. |
 | Self-improvement loop + system curator (2026-07-21) | Darwin Gödel Machine–style loop in medium-agent-factory: 9 bugs fixed, 1 patch auto-applied. Meta-loop: session-improver + system-curator agents added — the system now improves itself after every session |
 | Cartridge v2 (2026-07-09) | 10-slot template, 3-shot exemplars, roster → 13 agents, CLAUDE.md 391→107 lines, 24-case meta-eval, 25/25 tests |
