@@ -118,6 +118,48 @@ Update `.superpowers/sdd/progress.md` after EVERY task completion. Context compa
 - **sonnet** — write / rewrite / review / multi-file refactor
 - **opus** — architecture cross-cutting tradeoffs only
 
+## Monitor discipline (non-negotiable)
+
+**Prefer Monitor over Bash `run_in_background` + polling for any background process that emits ongoing status.**
+
+Monitor shows as a live entry in the Claude Code terminal status bar — the user sees it running. That visibility is a feature: it tells the user exactly what Claude is waiting on without any narration.
+
+### When to use Monitor vs Bash run_in_background
+
+| Situation | Tool |
+|-----------|------|
+| "Tell me when the pipeline finishes" (one event, process exits) | `Bash run_in_background` with `until` loop |
+| "Watch a pipeline log and fire on SUCCESS or ERROR" (one terminal event, process keeps running) | `Monitor` with `tail -f log \| grep --line-buffered -E "SUCCESS\|error"` |
+| "Emit every ERROR line from a live server" (ongoing, never exits) | `Monitor persistent: true` |
+
+### Auto-arm rule (non-negotiable)
+
+After launching ANY background process via `Start-Process` or `nohup`:
+1. Immediately arm a Monitor on its log file
+2. Filter must cover BOTH success AND failure paths — silence on crash = invisible failure
+3. When Monitor fires, immediately handle the result (audit, commit, launch next step) without waiting for user to prompt
+
+```bash
+# Correct pattern
+tail -f "$TEMP/pipeline.log" | grep --line-buffered -E "SUCCESS|FINISHED|error|Error|Traceback|failed"
+```
+
+Never use `Start-Sleep` or `sleep` as a substitute for Monitor. Never poll in a loop. One Monitor per background job, armed immediately after launch.
+
+### Self-improvement loop Monitor pattern
+
+When launching the self-improvement loop as a background process:
+```powershell
+Start-Process -NoNewWindow -FilePath ".venv\Scripts\python.exe" `
+  -ArgumentList "-m app.scripts.self_improvement_loop --payload ..\loop_payload.json --fast-loop --skip-images" `
+  -RedirectStandardOutput "$env:TEMP\loop.log" -RedirectStandardError "$env:TEMP\loop_err.log"
+```
+Immediately arm:
+```bash
+tail -f "$TEMP/loop.log" | grep --line-buffered -E "Converged|Max cycles|Report written|balance|ERROR"
+```
+When Monitor fires on "Report written", read the JSON report and run the post audit automatically.
+
 ## Delegation discipline
 
 - Prompts: max 300 tokens — file paths + line ranges, never paste content
