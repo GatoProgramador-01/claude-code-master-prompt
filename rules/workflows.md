@@ -15,6 +15,18 @@ Launch `adversarial` (read-only diagnostics mode) + `architect` in parallel befo
 
 Visible parallel activity (multiple agents running simultaneously) is a hard requirement, not a style preference.
 
+### Agent scope discipline (non-negotiable — failure mode: Sprint 31 2026-07-28)
+
+**Never dispatch "fix N tests" or "fix all failures" to a single agent.** Broad agents spend 30-40 tool calls reading/analyzing before getting cut off mid-report — zero output survives. This is the most expensive mistake possible.
+
+**Correct pattern for test failures:**
+1. Run `pytest -x -q` — get the FIRST failure only
+2. Read the ONE failing file and its ONE root cause
+3. Dispatch ONE scoped agent: "Fix `NameError: name 'post'` in `backend/app/agents/nodes/quality_analysis.py:445`"
+4. Commit. Run `pytest -x` again. Repeat per failure class.
+
+**Each agent task brief must name:** the exact file, the exact error message, the exact line range to change. No vague briefs.
+
 ### Parallelize vs sequential
 - **Parallelize:** research + implementation | multiple module rewrites | audit + test + lint | Adversarial runs alongside every sprint
 - **Sequential only:** Task B needs Task A output | two agents writing the same file
