@@ -37,6 +37,7 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 | Decomposition, task routing, system design | `architect` | sonnet |
 | LangGraph node, PipelineState, orchestrator wiring, evals, LLMOps | `llmops-expert` | sonnet |
 | FastAPI/NestJS routes, Pydantic, Motor, rate limits, auth | `backend-expert` | sonnet |
+| TDD partner — unit+integration+E2E tests (same wave as backend-expert / llmops-expert / drafter) | `backend-tester` | sonnet |
 | React/Next.js, App Router, Zustand, RTL, TSDoc, SSE UI | `frontend-expert` | sonnet |
 | Docker, GitHub Actions, Terraform, Railway, CI/CD secrets | `devops-expert` | sonnet |
 | Vercel deploys, env vars, domains, preview→prod promotion | `vercel-deployer` | sonnet |

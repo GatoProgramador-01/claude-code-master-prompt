@@ -37,6 +37,7 @@ Within `parallel-executor`, every implementer and reviewer MUST use the correct 
 | Implementer | `drafter` | New Python files, TDD, new agents/nodes/prompt files |
 | Implementer | `llmops-expert` | LangGraph nodes, LLMOps patterns, structured output, orchestrator wiring, PipelineState |
 | Implementer | `backend-expert` | FastAPI routes, Pydantic, Motor, rate limits, auth |
+| TDD partner | `backend-tester` | Fired in same wave as backend-expert / llmops-expert / drafter. Writes RED unit+integration+E2E tests; verifies GREEN after implementer commits. Never touches app/ |
 | Implementer | `frontend-expert` | React/Next.js/TS, App Router, RTL tests, TSDoc |
 | Implementer | `devops-expert` | Docker, GitHub Actions, Railway/Vercel, Terraform |
 | Implementer | `prompt-engineer` | Prompt files, prompt versioning, G-Eval rubrics |
@@ -72,7 +73,7 @@ The parallel-executor `implementer-prompt.md` template contains `[AGENT_TYPE]` �
 `codex_mode` describes what the AGENT does with Codex output during its OWN work, not what the parallel-executor controller does after the agent finishes:
 
 - **codex-blocking** — This agent expects to consult Codex mid-task on high-risk decisions (orchestration wiring, IaC, secrets). Used by `llmops-expert`, `devops-expert`.
-- **codex-concurrent** — This agent produces standard implementation code; Codex runs in parallel and the agent folds findings into its own self-review before returning. Used by `backend-expert`, `frontend-expert`, `adversarial`, `scraper`, `drafter`, `prompt-engineer`, `eval-writer`.
+- **codex-concurrent** — This agent produces standard implementation code; Codex runs in parallel and the agent folds findings into its own self-review before returning. Used by `backend-expert`, `backend-tester`, `frontend-expert`, `adversarial`, `scraper`, `drafter`, `prompt-engineer`, `eval-writer`.
 - **codex-skip** — This agent does not produce code that needs Codex review (architect designs only, validate is the final gate, researcher writes prose, sme-reviewer is itself a review agent). Used by `architect`, `validate`, `researcher`, `sme-reviewer`.
 
 **The parallel-executor merge gate is always Codex `--wait` + `adversarial` subagent verdict, no exceptions.**

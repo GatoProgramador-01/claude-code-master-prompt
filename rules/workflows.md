@@ -31,15 +31,38 @@ Visible parallel activity (multiple agents running simultaneously) is a hard req
 - **Parallelize:** research + implementation | multiple module rewrites | audit + test + lint | Adversarial runs alongside every sprint
 - **Sequential only:** Task B needs Task A output | two agents writing the same file
 
+## Backend TDD pairing (non-negotiable)
+
+Every wave that dispatches a Python backend implementer (`backend-expert`, `llmops-expert`, `drafter`) **must** also dispatch `backend-tester` in the **same wave** with the same task brief. No exceptions.
+
+```
+Wave N (parallel — fires simultaneously in one message):
+    backend-expert   → writes implementation (app/routers/, app/agents/nodes/, etc.)
+    backend-tester   → writes RED tests (tests/unit/, tests/integration/, tests/e2e/)
+
+Wave N+1 (sequential):
+    validate → runs pytest; tests must be GREEN after backend-expert commits
+    adversarial → reviews both implementation AND test coverage
+
+Merge gate: tests GREEN + adversarial verdict PASS
+```
+
+**Self-check before every wave dispatch:** "Did I include `backend-tester` alongside the backend implementer? If no: add it now."
+
+- `backend-tester` writes tests for what the implementer is ABOUT to write — tests will be RED until the implementer commits
+- File scope: `backend-tester` reads `app/` (read-only) and writes only to `tests/`; never writes to `app/`
+- If the implementer touches >1 module, `backend-tester` gets the same multi-module scope — one test class per module, all in the same pass
+
 ## Standard workflow teams
 
 - **New pipeline feature:** adversarial (diagnostics) + architect (parallel) → adversarial (design attack) → writing-plans → parallel-executor → validate → llmops-expert (wires orchestrator)
-- **New API endpoint:** architect → backend-expert + adversarial (parallel) → writing-plans → parallel-executor → validate → commit
+- **New API endpoint:** architect → [backend-expert + backend-tester + adversarial] (parallel) → writing-plans → parallel-executor → validate → commit
+- **LangGraph node:** architect → [llmops-expert + backend-tester + adversarial] (parallel) → validate → commit
 - **Frontend feature:** frontend-expert + adversarial (parallel) → writing-plans → parallel-executor → validate → commit (TSDoc emitted by frontend-expert itself, Slot 4)
 - **Deploy/infra change:** devops-expert → adversarial → writing-plans → parallel-executor → validate → commit
 - **Research-backed post:** researcher (grounding) → architect (topic string) → pipeline run
 - **Debug failing test:** adversarial (read-only diagnostics) + adversarial (blind hypothesis) → validate fix
-- **Full-stack feature:** frontend-expert + backend-expert + adversarial (all parallel) → writing-plans → SDD → validate → llmops-expert (integration)
+- **Full-stack feature:** frontend-expert + [backend-expert + backend-tester] + adversarial (all parallel) → writing-plans → SDD → validate → llmops-expert (integration)
 - **New prompt / eval:** prompt-engineer + eval-writer (parallel) → sme-reviewer → validate → commit
 
 ## Parallel Wave pattern — bulk audit + wire
