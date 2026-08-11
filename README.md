@@ -310,6 +310,35 @@ Every sprint prints a live tree — before agents launch and after each completi
 
 ---
 
+## Meta-Eval
+
+Structural consistency checker for the agent system — runs in ~1 second, zero API cost, no LangChain dependency.
+
+```bash
+python docs/evals/runner.py
+```
+
+**What it checks (38 checks, pass threshold ≥ 0.80):**
+
+| Category | Checks |
+|---|---|
+| CLAUDE.md | Exists · line count ≤ 120 |
+| Rules files | All 6 required `rules/*.md` exist |
+| Agent cartridges | All 17 routing-table agents have `.md` files |
+| Model routing | `drafter` + `validate` use haiku frontmatter; key sonnet agents do not accidentally use haiku |
+| Slot completeness | Sampled cartridges (`drafter`, `llmops-expert`, `backend-expert`) have all 10 slots |
+| Workflow rules | `workflows.md` has parallel-agent min-3 rule, model routing section, and prompt-by-reference discipline |
+| Self-improvement | `self-improvement.md` has derived rules table with incident evidence |
+
+**Not LangChain.** This is a pure-Python structural checker. For LLM-as-judge evaluation of agent output quality, see the 3-layer eval architecture in `rules/self-improvement.md` (Layer 3, nightly, LangSmith).
+
+**Run after any:**
+- Agent cartridge edit
+- New rule added to `rules/`
+- CLAUDE.md change
+
+---
+
 ## Stack Coverage
 
 | Layer | Technologies |
