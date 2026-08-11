@@ -30,7 +30,7 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 
 ---
 
-## AGENT ROUTING (15 experts)
+## AGENT ROUTING (17 experts)
 
 | Task pattern | Agent | Model |
 |--------------|-------|-------|
@@ -61,8 +61,6 @@ Deep rules live at BOTH `~/.claude/rules/` (user-scope override) AND `<repo>/rul
 - Hooks + CLAUDE.md hygiene + headless automation → `rules/hooks.md`
 - Self-improvement session protocol + derived rules → `rules/self-improvement.md`
 - Master prompt repo management discipline → `rules/prompt-repo.md`
-
-Installer (`scripts/install-rules.sh`, forthcoming) copies `rules/*.md` → `~/.claude/rules/` so every session loads the same operating contract.
 
 ---
 
