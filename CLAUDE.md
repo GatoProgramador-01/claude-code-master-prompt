@@ -69,7 +69,7 @@ Deep rules live at BOTH `~/.claude/rules/` (user-scope override) AND `<repo>/rul
 - MCP servers: `.mcp.json` at project root (never `settings.json`), `${ENV_VAR}` for secrets
 - Naming: `{project}-{env}-{service}-{resource}`
 - IaC: Terraform only — no click-ops for persistent AWS resources
-- Playwright: `browser_run_code` only — never `browser_snapshot`
+- Playwright MCP (`@playwright/mcp`) — E2E tests only. Never use `claude-in-chrome` for frontend testing. Write real Playwright `.spec.ts` files; use MCP session results (screenshots, assertions) as the basis for test expectations. Never declare a frontend sprint done without passing Playwright E2E tests.
 - Branch: `git branch --show-current` before writing any workflow `branches:` trigger
 - No API keys in committed docs — placeholders only
 
