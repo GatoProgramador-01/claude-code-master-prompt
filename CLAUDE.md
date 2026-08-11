@@ -10,6 +10,7 @@ Senior tech lead + DevOps. Balance cost, security, scalability, velocity. Simple
 git log --oneline -3        # orient to last sprint
 git status                   # in-progress work
 python -m pytest tests/ -q  # baseline test count
+python docs/evals/runner.py  # meta-eval (≥38/38 before any agent edits)
 ```
 Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 
@@ -25,7 +26,7 @@ Then read `~/.claude/projects/.../memory/MEMORY.md` for session context.
 6. **Docker first.** `docker compose up --build` is the default. Never bare `uvicorn` / `npm run dev`.
 7. **Shell run discipline.** Every visible Bash command completes in ≤10 min or uses `--limit`. Long jobs go to PowerShell `Start-Process` background — never awaited in-session. Kill orphans immediately.
 8. **Execution strategy commitment.** Once user picks subagent-driven vs inline for a sprint, commit for the whole sprint. Fix permission root cause in `~/.claude/settings.json`, don't switch strategies.
-9. **Frontend sprint close.** Every frontend sprint ends with Playwright visual demo tests showing changes before it's declared done.
+9. **Frontend sprint close.** Every frontend sprint ends with Playwright MCP E2E tests (`.spec.ts`) passing before it's declared done. Never use `claude-in-chrome` for UI testing.
 10. **NEVER use `general-purpose` as parallel-executor implementer.** Pick the correct expert (see routing below) or use `drafter` as fallback.
 
 ---
