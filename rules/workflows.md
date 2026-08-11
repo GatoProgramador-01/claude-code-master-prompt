@@ -137,9 +137,18 @@ Update `.superpowers/sdd/progress.md` after EVERY task completion. Context compa
 
 ## Model routing
 
-- **haiku** — read / search / lint / format / build — 10× cheaper
+- **haiku** — read / search / lint / format / build — 10× cheaper. `drafter` and `validate` agent frontmatter already set `model: haiku`; never override with `model="sonnet"` for these agents.
 - **sonnet** — write / rewrite / review / multi-file refactor
 - **opus** — architecture cross-cutting tradeoffs only
+
+## Agent prompt discipline — token efficiency (non-negotiable)
+
+When dispatching plan-based implementers via parallel-executor, the single biggest token cost is pasting code blocks into each agent prompt. A 3-agent wave with pasted code = ~9,000 tokens wasted on context injection that the agent will just re-read from disk anyway.
+
+**Rules:**
+- **Prompt by reference, not paste.** Prompts must be <=300 tokens. Give the plan file path and task number — never paste code blocks. Example prompt: `"Read Task 2 from docs/superpowers/plans/2026-08-11-plan.md. Implement that task exactly. Working dir: /abs/path. Venv: .venv\Scripts. Commit when tests GREEN."`
+- **Paste code only** when no written plan exists (quick one-off fix). Even then, cap at the single function being changed.
+- **Checklist before every Agent() call:** (1) Does a plan file exist? -> reference it. (2) Is this drafter or validate? -> frontmatter already sets haiku, no `model=` override needed. (3) Is the prompt under 300 tokens? -> if not, move content to a file.
 
 ## Monitor discipline (non-negotiable)
 
