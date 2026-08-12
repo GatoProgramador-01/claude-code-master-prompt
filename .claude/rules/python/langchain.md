@@ -107,6 +107,59 @@ async def stream_logs(run_id: str, request: Request) -> StreamingResponse:
 
 Rules: `__done__` sentinel closes stream | `X-Accel-Buffering: no` required behind Nginx | auth via query param (EventSource has no custom headers)
 
+### LangGraph Studio — wire on every new LangGraph project
+
+Three files required on **first commit**:
+
+**`langgraph.json`** (repo root):
+```json
+{
+  "dependencies": ["."],
+  "graphs": { "<name>": "./src/<pkg>/pipeline.py:build_pipeline" },
+  "env": ".env"
+}
+```
+
+**`scripts/langgraph_dev.py`** — Windows launcher (patches pathspec 1.1.1 CLI bug):
+```python
+import sys, types, os
+_m = types.ModuleType("pathspec._backends.re2.base")
+_m.re2_error = Exception
+sys.modules["pathspec._backends.re2.base"] = _m
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+from langgraph_cli.cli import cli
+sys.argv = ["langgraph", "dev", "--no-browser"]
+cli()
+```
+
+**`docs/graph.png`** — regenerate whenever nodes change:
+```bash
+uv run python -c "
+from src.<pkg>.pipeline import build_pipeline
+open('docs/graph.png','wb').write(build_pipeline().get_graph().draw_mermaid_png())
+"
+```
+
+Dev dep: `"langgraph-cli[inmem]>=0.4"` in `[dependency-groups]` (not `[project.optional-dependencies]`).
+Studio URL after launch: `https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024`
+
+### LangGraph node rules — pure functions, no mutation
+
+```python
+# CORRECT — pure function, returns new dict
+def score_node(state: MatcherState) -> dict:
+    scored = [score_job(e, state["profile"]) for e in state["extracted_jobs"]]
+    return {"scored_jobs": scored, "token_stats": state.get("token_stats", {})}
+
+# WRONG — never mutate state in-place
+def score_node(state: MatcherState) -> dict:
+    state["scored_jobs"] = [...]   # forbidden
+    return state
+```
+
+Within-node SSE (progress events mid-node, bypassing `pipeline.stream()` which only emits after full node):
+Use `queue.SimpleQueue` side channel — node puts events; FastAPI drains via `run_in_executor(None, q.get)`.
+
 ### Prompt versioning
 Prompts in `prompts/` as `.txt` files. One file per prompt. Template vars: `{title}`, `{content}`.  
 Never hardcode in agent files. `load_prompt` raises `KeyError` at startup — fail fast.
